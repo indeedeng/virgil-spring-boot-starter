@@ -1,0 +1,6 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+  com.indeed.virgil.spring.boot.starter.config.VirgilAutoConfiguration
+
+
+org.springframework.boot.env.EnvironmentPostProcessor=\
+  com.indeed.virgil.spring.boot.starter.config.VirgilPropertiesEnvironmentPostProcessor

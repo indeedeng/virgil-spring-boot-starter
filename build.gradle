@@ -1,0 +1,108 @@
+plugins {
+    id 'java'
+    id 'maven-publish'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+
+    // Spring Boot
+    compile "org.springframework.boot:spring-boot-actuator:2.2.4.RELEASE"
+    compile "org.springframework.boot:spring-boot-starter-amqp:2.2.4.RELEASE"
+    annotationProcessor "org.springframework.boot:spring-boot-autoconfigure-processor:2.2.4.RELEASE"
+
+    // Jackson libraries
+    compile "com.fasterxml.jackson.core:jackson-databind:2.10.2"
+
+    // Spring Boot Admin
+    compile 'de.codecentric:spring-boot-admin-starter-server:2.2.0'
+    compile 'de.codecentric:spring-boot-admin-starter-client:2.2.0'
+
+    compile 'io.projectreactor.netty:reactor-netty:0.9.0.RELEASE'
+
+    compileOnly 'org.immutables:value:2.8.3'
+    annotationProcessor 'org.immutables:value:2.8.3'
+
+    // Test Only
+    testCompile 'org.mockito:mockito-core:2.24.0'
+    testCompile 'org.mockito:mockito-junit-jupiter:2.24.0'
+    testCompile 'org.junit.jupiter:junit-jupiter-api:5.4.0'
+    testRuntime 'org.junit.jupiter:junit-jupiter-engine:5.4.0'
+    testCompile 'org.assertj:assertj-core:3.15.0'
+    testCompile 'org.springframework:spring-test:5.2.4.RELEASE'
+    testCompile 'org.springframework:spring-context:5.2.4.RELEASE'
+    testCompile 'org.springframework.boot:spring-boot-starter-test:2.2.4.RELEASE'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+ext['indeed.publish.name'] = 'virgil-spring-boot-starter'
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'com.indeed'
+            artifactId = 'virgil-spring-boot-starter' // use the name from ext['indeed.publish.name']
+            version = '1.0.0-SNAPSHOT' // use whatever version makes sense for your project
+
+            from components.java
+        }
+    }
+}
+
+def ordered(String... dependencyPaths) {
+    def dependencies = dependencyPaths.collect { tasks.getByPath(it) }
+    for (int i = 0; i < dependencies.size() - 1; i++) {
+        dependencies[i + 1].mustRunAfter(dependencies[i])
+    }
+    return dependencies
+}
+
+task virgilTest(type: Exec) {
+    workingDir './src/npm/custom/'
+    commandLine 'npm', 'test'
+}
+
+task virgilNpmInstall(type: Exec) {
+    workingDir './src/npm/custom/'
+    commandLine 'npm', 'install'
+}
+
+task virgilNpmBuild(type: Exec) {
+    workingDir './src/npm/custom/'
+    commandLine 'npm', 'run', 'build'
+}
+
+task virgilNpmBuildDev(type: Exec) {
+    workingDir './src/npm/custom/'
+    commandLine 'npm', 'run', "build:dev"
+}
+
+task virgilCleanTarget(type: Delete) {
+    delete fileTree('./src/main/resources/META-INF/extensions/custom')
+}
+
+task virgilCopyToResources(type: Copy) {
+    from './src/npm/custom/target/dist'
+    into './src/main/resources/META-INF/extensions/custom'
+}
+
+
+task buildFrontEndProd(type: GradleBuild) {
+    group = 'build'
+    description = 'Build frontend for Prod'
+
+    dependsOn ordered(":virgilNpmInstall", ":virgilTest", ":virgilNpmBuild", ":virgilCleanTarget", ":virgilCopyToResources")
+}
+
+task buildFrontEndDev(type: GradleBuild) {
+    group = 'build'
+    description = 'Build frontend for Dev'
+
+    dependsOn ordered(":virgilNpmInstall", ":virgilTest", ":virgilNpmBuildDev", ":virgilCleanTarget", ":virgilCopyToResources")
+}
