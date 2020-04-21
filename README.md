@@ -73,6 +73,10 @@ per message
 #### V2
 Stay tuned!
 
+## UI Demo
+![alt text](https://github.com/indeedeng/virgil-spring-boot-starter/blob/master/images/home.png "Spring Boot Admin UI")
+![alt text](https://github.com/indeedeng/virgil-spring-boot-starter/blob/master/images/virgil.png "Virgil UI")
+
 ## Visit actuator endpoints
 * http://localhost:8080/private/actuator-endpoint-id
 * e.g.:
