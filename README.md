@@ -1,5 +1,7 @@
 # Virgil Spring Boot Starter
 
+![OSS Lifecycle](https://img.shields.io/osslifecycle/indeedeng/virgil-spring-boot-starter.svg)
+
 Virgil is a Spring Boot Starter that is developed as a Spring Boot Admin extension and serves as a generic message
 manager. It supports RabbitMQ with actions such as count/display/republish/drop messages on the queue. 
 
