@@ -3,7 +3,7 @@
 ![OSS Lifecycle](https://img.shields.io/osslifecycle/indeedeng/virgil-spring-boot-starter.svg)
 
 Virgil is a Spring Boot Starter that is developed as a Spring Boot Admin extension and serves as a generic message
-manager. It supports RabbitMQ with actions such as count/display/republish/drop messages on the queue. 
+manager. It supports RabbitMQ with actions such as count/display/republish/drop messages on the queue.
 
 For future releases we will consider adding in additional actions such as download/etc along with Kafka support.
 
@@ -54,6 +54,7 @@ If `addresses` is blank, `host` and `port` will be used. `Port` will default to 
 
 * `queues.queue`: if `republishName` and `republishBinderName` is not present, we will disable `republish` option
 per message
+
 
 * If you are using Spring Cloud Stream:
   * If you configure `spring.cloud.stream.rabbit.bindings.input.consumer.auto-bind-dlq=true` and
