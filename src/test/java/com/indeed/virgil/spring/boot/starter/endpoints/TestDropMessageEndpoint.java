@@ -5,11 +5,14 @@ import com.indeed.virgil.spring.boot.starter.util.EndpointConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING;
 
+@ExtendWith(MockitoExtension.class)
 public class TestDropMessageEndpoint {
 
     @Mock
@@ -19,8 +22,6 @@ public class TestDropMessageEndpoint {
 
     @BeforeEach
     void setup() {
-        MockitoAnnotations.initMocks(this);
-
         dropMessageEndpoint = new DropMessageEndpoint(messageOperator);
     }
 

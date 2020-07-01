@@ -128,7 +128,9 @@
                 // eslint-disable-next-line
                 console.log('get all messages');
 
-                const response = await EndpointService.get(this.instance, 'get-dlq-messages');
+                const response = await EndpointService.get(this.instance, 'get-dlq-messages', {
+                  limit: 200
+                });
 
                 this.dlqMessages = response.data;
 
