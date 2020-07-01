@@ -47,18 +47,17 @@ fi
 
 
 # build npm resources
-cd ..
+cd .. # Change working directory to parent
 ./gradlew buildFrontEndProd
-cd scripts
+
 
 if [ $? -ne 0 ]; then
   echo "Gradle buildFrontEndProd did not complete successfully, not moving forward."
   exit 2;
 fi
 
-
 # parse version
-BUILD_GRADLE_PATH="../build.gradle"
+BUILD_GRADLE_PATH="build.gradle"
 
 # Find current version and only return matched string
 VERSION_STRING=$(grep -oE "version.*=.*'[[:digit:]]+.[[:digit:]]+.[[:digit:]]+-SNAPSHOT'" $BUILD_GRADLE_PATH)
@@ -82,4 +81,5 @@ sed -i "s/${VERSION_STRING}/${NEW_VERSION_STRING}/i" $BUILD_GRADLE_PATH
 
 # commit
 git commit -am "Checking in built artifacts for Prod; Upped version to ${NEW_VERSION_STRING}"
+git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
 
