@@ -12,6 +12,8 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 @SpringJUnitConfig
 public class TestVirgilPropertyConfig {
 
@@ -32,7 +34,7 @@ public class TestVirgilPropertyConfig {
             final Map<String, QueueProperties> queueMap = virgilPropertyConfig.getQueues();
 
             //Assert
-            Assertions.assertEquals(1, queueMap.size());
+            assertThat(queueMap.size()).isEqualTo(1);
         }
 
         @Test
@@ -44,7 +46,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final QueueProperties queueEntry = queueMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("readQueue", queueEntry.getReadName());
+            assertThat(queueEntry.getReadName()).isEqualTo("readQueue");
         }
 
         @Test
@@ -56,7 +58,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final QueueProperties queueEntry = queueMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("rabbit123", queueEntry.getReadBinderName());
+            assertThat(queueEntry.getReadBinderName()).isEqualTo("rabbit123");
         }
 
         @Test
@@ -68,7 +70,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final QueueProperties queueEntry = queueMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("republishQueue", queueEntry.getRepublishName());
+            assertThat(queueEntry.getRepublishName()).isEqualTo("republishQueue");
         }
 
         @Test
@@ -80,7 +82,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final QueueProperties queueEntry = queueMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("rabbit123", queueEntry.getRepublishBinderName());
+            assertThat(queueEntry.getRepublishBinderName()).isEqualTo("rabbit123");
         }
 
         @Test
@@ -91,7 +93,7 @@ public class TestVirgilPropertyConfig {
             final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
 
             //Assert
-            Assertions.assertEquals(1, binderMap.size());
+            assertThat(binderMap.size()).isEqualTo(1);
         }
 
         @Test
@@ -103,7 +105,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("virgil-test-exchange", binderEntry.getName());
+            assertThat(binderEntry.getName()).isEqualTo("virgil-test-exchange");
         }
 
         @Test
@@ -115,7 +117,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("rabbit", binderEntry.getType());
+            assertThat(binderEntry.getType()).isEqualTo("rabbit");
         }
 
         @Test
@@ -127,7 +129,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("localhost:11111", binderEntry.getRabbitSettings().getAddresses());
+            assertThat(binderEntry.getRabbitProperties().getAddresses()).isEqualTo("localhost:11111");
         }
 
         @Test
@@ -139,7 +141,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("localhost", binderEntry.getRabbitSettings().getHost());
+            Assertions.assertEquals("localhost", binderEntry.getRabbitProperties().getHost());
         }
 
         @Test
@@ -151,7 +153,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals(5672, binderEntry.getRabbitSettings().getPort());
+            Assertions.assertEquals(5672, binderEntry.getRabbitProperties().getPort());
         }
 
         @Test
@@ -163,7 +165,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("guest", binderEntry.getRabbitSettings().getUsername());
+            Assertions.assertEquals("guest", binderEntry.getRabbitProperties().getUsername());
         }
 
         @Test
@@ -175,7 +177,7 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("guestPass", binderEntry.getRabbitSettings().getPassword());
+            Assertions.assertEquals("guestPass", binderEntry.getRabbitProperties().getPassword());
         }
 
         @Test
@@ -187,9 +189,240 @@ public class TestVirgilPropertyConfig {
 
             //Assert
             final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
-            Assertions.assertEquals("/", binderEntry.getRabbitSettings().getVirtualHost());
+            Assertions.assertEquals("/", binderEntry.getRabbitProperties().getVirtualHost());
         }
 
     }
 
+    @Nested
+    @EnableConfigurationProperties(VirgilPropertyConfig.class)
+    @TestPropertySource(locations = "classpath:single-queue-with-port-config.properties")
+    public class SingleQueueWithPortConfiguration {
+
+        @Autowired
+        VirgilPropertyConfig virgilPropertyConfig;
+
+        @Test
+        void shouldLoadSingleQueue() {
+            //Arrange
+
+            //Act
+            final Map<String, QueueProperties> queueMap = virgilPropertyConfig.getQueues();
+
+            //Assert
+            assertThat(queueMap.size()).isEqualTo(1);
+        }
+
+        @Test
+        void shouldLoadBinderWithName() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getName()).isEqualTo("virgil-test-exchange");
+        }
+
+        @Test
+        void shouldLoadBinderWithTypeRabbit() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getType()).isEqualTo("rabbit");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsAddresses() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineAddresses()).isEqualTo("my-rabbit-host:5672");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsHost() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineHost()).isEqualTo("my-rabbit-host");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsPort() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determinePort()).isEqualTo(5672);
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsUsername() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineUsername()).isEqualTo("guest");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsPassword() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determinePassword()).isEqualTo("guestPass");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsVirtualHost() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineVirtualHost()).isEqualTo("my-vhost");
+        }
+    }
+
+    @Nested
+    @EnableConfigurationProperties(VirgilPropertyConfig.class)
+    @TestPropertySource(locations = "classpath:single-queue-without-port-config.properties")
+    public class SingleQueueWithoutPortConfiguration {
+
+        @Autowired
+        VirgilPropertyConfig virgilPropertyConfig;
+
+        @Test
+        void shouldLoadSingleQueue() {
+            //Arrange
+
+            //Act
+            final Map<String, QueueProperties> queueMap = virgilPropertyConfig.getQueues();
+
+            //Assert
+            assertThat(queueMap.size()).isEqualTo(1);
+        }
+
+        @Test
+        void shouldLoadBinderWithName() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getName()).isEqualTo("virgil-test-exchange");
+        }
+
+        @Test
+        void shouldLoadBinderWithTypeRabbit() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getType()).isEqualTo("rabbit");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsAddresses() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineAddresses()).isEqualTo("my-rabbit-host-3:5672");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsHost() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineHost()).isEqualTo("my-rabbit-host-3");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsPort() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determinePort()).isEqualTo(5672);
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsUsername() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineUsername()).isEqualTo("guest3");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsPassword() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determinePassword()).isEqualTo("guestPass3");
+        }
+
+        @Test
+        void shouldLoadBinderWithRabbitSettingsVirtualHost() {
+            //Arrange
+
+            //Act
+            final Map<String, BinderProperties> binderMap = virgilPropertyConfig.getBinders();
+
+            //Assert
+            final BinderProperties binderEntry = binderMap.entrySet().iterator().next().getValue();
+            assertThat(binderEntry.getRabbitProperties().determineVirtualHost()).isEqualTo("my-vhost3");
+        }
+    }
 }
