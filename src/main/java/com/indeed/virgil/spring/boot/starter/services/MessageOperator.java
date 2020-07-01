@@ -19,6 +19,7 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -63,7 +64,7 @@ public class MessageOperator {
 
     public List<VirgilMessage> getMessages(@Nullable final Integer limit) {
 
-        // initialize messageCache on each method call; messageCache is acting as server side cache for messages.
+        // initialize messageLookup on each method call; messageLookup is acting as server side cache for messages.
         messageCache = new ConcurrentHashMap<>();
 
         final Integer queueSize = getQueueSize();
@@ -75,24 +76,12 @@ public class MessageOperator {
             .filter(value -> value > 0)
             .orElse(queueSize);
 
-        final List<VirgilMessage> dlqMessages = new ArrayList<>(numToRetrieve);
+        final HandleGetMessages handleGetMessages = new HandleGetMessages(this, messagePropertiesConverter, messageConverterService, numToRetrieve);
         for (int i = 0; i < numToRetrieve; i++) {
-            getReadRabbitTemplate().execute(new ChannelCallback<String>() {
-
-                @Override
-                public String doInRabbit(final Channel channel) throws Exception {
-                    final GetResponse response = channel.basicGet(getReadQueueName(), false);
-                    final MessageProperties messageProps =
-                        messagePropertiesConverter.toMessageProperties(response.getProps(), response.getEnvelope(), "UTF-8");
-                    final Message message = new Message(response.getBody(), messageProps);
-                    final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
-
-                    dlqMessages.add(virgilMessage);
-                    messageCache.put(virgilMessage.getFingerprint(), message);
-                    return null;
-                }
-            });
+            getReadRabbitTemplate().execute(handleGetMessages);
         }
+
+        messageCache.putAll(handleGetMessages.getMessageLookup());
 
         //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
 
@@ -100,10 +89,14 @@ public class MessageOperator {
         // Connection will be automatically reestablished on next Actuator endpoint invocation
         destroyReadConnection();
 
-        return dlqMessages;
+        return handleGetMessages.getDlqMessages();
     }
 
-    // take fingerprint from UI, lookup from server side message cache for message body and publish
+    /**
+     * take fingerprint from UI, lookup from server side message cache for message body and publish
+     * @param fingerprint
+     * @return
+     */
     public boolean publishCertainMessage(final String fingerprint) {
 
         if (StringUtils.isEmpty(fingerprint)) {
@@ -120,7 +113,10 @@ public class MessageOperator {
         return true;
     }
 
-    // Drop all messages in the queue.
+    /**
+     * Drop all messages in the queue.
+     * @return
+     */
     public boolean dropMessages() {
 
         final Integer queueSize = getQueueSize();
@@ -129,17 +125,9 @@ public class MessageOperator {
             return false;
         }
 
-        getReadRabbitTemplate().execute(new ChannelCallback<Void>() {
-            @Override
-            public Void doInRabbit(final Channel channel) throws Exception {
-                LOG.info("Purging the queue");
-                channel.queuePurge(getReadQueueName());
+        final HandleDropMessages handleDropMessages = new HandleDropMessages(this);
 
-                return null;
-            }
-
-            ;
-        });
+        getReadRabbitTemplate().execute(handleDropMessages);
 
         return true;
     }
@@ -147,7 +135,7 @@ public class MessageOperator {
     public boolean ackCertainMessage(final String fingerprint) {
 
         if (StringUtils.isEmpty(fingerprint)) {
-            LOG.error("messageId is null or empty.");
+            LOG.error("fingerprint is null or empty.");
             return false;
         }
 
@@ -157,23 +145,9 @@ public class MessageOperator {
             return false;
         }
 
+        final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, fingerprint);
         for (int i = 0; i < queueSize; i++) {
-            getReadRabbitTemplate().execute(new ChannelCallback<String>() {
-
-                @Override
-                public String doInRabbit(final Channel channel) throws Exception {
-                    final GetResponse response = channel.basicGet(getReadQueueName(), false);
-                    final MessageProperties messageProps =
-                        messagePropertiesConverter.toMessageProperties(response.getProps(), response.getEnvelope(), "UTF-8");
-                    final Message message = new Message(response.getBody(), messageProps);
-                    final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
-
-                    if (fingerprint.equals(virgilMessage.getFingerprint())) {
-                        channel.basicAck(response.getEnvelope().getDeliveryTag(), false);
-                    }
-                    return null;
-                }
-            });
+            getReadRabbitTemplate().execute(handleAckCertainMessage);
         }
 
         //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
@@ -181,7 +155,123 @@ public class MessageOperator {
         // Close connection so 'Unacked' messages could be put back to 'Ready' state
         // Connection will be automatically reestablished on next Actuator endpoint invocation
         destroyReadConnection();
-        return true;
+        return handleAckCertainMessage.hasMessageBeenAckd();
+    }
+
+    protected static class HandleAckCertainMessage implements ChannelCallback<String> {
+
+        private final MessageOperator messageOperator;
+        private final MessagePropertiesConverter messagePropertiesConverter;
+        private final MessageConverterService messageConverterService;
+        private final String fingerprint;
+        private boolean messageFound = false;
+
+        public HandleAckCertainMessage(
+            final MessageOperator messageOperator,
+            final MessagePropertiesConverter messagePropertiesConverter,
+            final MessageConverterService messageConverterService,
+            final String fingerprint
+        ) {
+            this.messageOperator = messageOperator;
+            this.messagePropertiesConverter = messagePropertiesConverter;
+            this.messageConverterService = messageConverterService;
+            this.fingerprint = fingerprint;
+        }
+
+        @Override
+        public String doInRabbit(final Channel channel) throws Exception {
+            final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
+            if(response == null) {
+                return null;
+            }
+
+            final MessageProperties messageProps =
+                messagePropertiesConverter.toMessageProperties(response.getProps(), response.getEnvelope(), "UTF-8");
+            final Message message = new Message(response.getBody(), messageProps);
+            final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
+
+            if (fingerprint.equals(virgilMessage.getFingerprint())) {
+                channel.basicAck(response.getEnvelope().getDeliveryTag(), false);
+                messageFound = true;
+            }
+            return null;
+        }
+
+        /**
+         * Returns true if the message was found and ack'd, otherwise returns false
+         * @return
+         */
+        public boolean hasMessageBeenAckd() {
+            return this.messageFound;
+        }
+    }
+
+    protected static class HandleDropMessages implements ChannelCallback<Void> {
+
+        private final MessageOperator messageOperator;
+
+        public HandleDropMessages(
+            final MessageOperator messageOperator
+        ) {
+            this.messageOperator = messageOperator;
+        }
+
+        @Override
+        public Void doInRabbit(final Channel channel) throws Exception {
+            LOG.info("Purging the queue");
+            channel.queuePurge(messageOperator.getReadQueueName());
+
+            return null;
+        }
+    }
+
+    protected static class HandleGetMessages implements ChannelCallback<Void> {
+
+        private final MessageOperator messageOperator;
+        private final MessagePropertiesConverter messagePropertiesConverter;
+        private final MessageConverterService messageConverterService;
+
+        private final List<VirgilMessage> dlqMessages;
+        private final Map<String, Message> messageLookup;
+
+        public HandleGetMessages(
+            final MessageOperator messageOperator,
+            final MessagePropertiesConverter messagePropertiesConverter,
+            final MessageConverterService messageConverterService,
+            final int numToRetrieve
+        ) {
+            this.messageOperator = messageOperator;
+            this.messagePropertiesConverter = messagePropertiesConverter;
+            this.messageConverterService = messageConverterService;
+
+            this.dlqMessages = new ArrayList<>(numToRetrieve);
+            this.messageLookup = new HashMap<>(numToRetrieve);
+        }
+
+        @Override
+        public Void doInRabbit(final Channel channel) throws Exception {
+            final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
+            if(response == null) {
+                return null;
+            }
+
+            final MessageProperties messageProps =
+                messagePropertiesConverter.toMessageProperties(response.getProps(), response.getEnvelope(), "UTF-8");
+            final Message message = new Message(response.getBody(), messageProps);
+            final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
+
+            dlqMessages.add(virgilMessage);
+            messageLookup.put(virgilMessage.getFingerprint(), message);
+            return null;
+        }
+
+        public List<VirgilMessage> getDlqMessages() {
+            return dlqMessages;
+        }
+
+        public Map<String, Message> getMessageLookup() {
+            return messageLookup;
+        }
     }
 
     private String getReadQueueName() {

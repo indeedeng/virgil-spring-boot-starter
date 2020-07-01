@@ -1,10 +1,19 @@
 package com.indeed.virgil.spring.boot.starter.services;
 
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
+import com.indeed.virgil.spring.boot.starter.models.ImmutableVirgilMessage;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
+import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleAckCertainMessage;
+import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleDropMessages;
+import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleGetMessages;
+import com.rabbitmq.client.AMQP.BasicProperties;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.Envelope;
+import com.rabbitmq.client.GetResponse;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.amqp.core.AmqpAdmin;
@@ -13,12 +22,17 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter;
+import org.springframework.amqp.rabbit.support.MessagePropertiesConverter;
 
+import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -30,9 +44,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TestMessageOperator {
 
+    private static final String EXCHANGE_NAME = "exchange";
     private static final String QUEUE_NAME = "default-queue-name";
     private static final String BINDER_NAME = "default-binder-name";
     private static final Integer QUEUE_SIZE_3 = 3;
@@ -65,149 +79,441 @@ public class TestMessageOperator {
         messageOperator = new MessageOperator(virgilPropertyConfig, rabbitMqConnectionService, messageConverterService);
     }
 
-    @Test
-    public void testGetQueueSize() {
+    @Nested
+    class getQueueSize {
 
-        initializeQueueProperties(false);
+        @Test
+        public void shouldReturnQueueSizeWhenQueueExists() {
 
-        assertEquals(QUEUE_SIZE_3, messageOperator.getQueueSize());
+            initializeQueueProperties(false);
+
+            assertThat(messageOperator.getQueueSize()).isEqualTo(QUEUE_SIZE_3);
+        }
+
+        @Test
+        public void shouldReturnNullWhenQueueDoesNotExist() {
+
+            initializeQueueProperties(true);
+
+
+            assertThat(messageOperator.getQueueSize()).isNull();
+        }
     }
 
-    @Test
-    public void testGetQueueSizeQueueNotExist() {
+    @Nested
+    class getMessages {
+        @Test
+        public void testGetMessages() {
 
-        initializeQueueProperties(true);
+            initializeQueueProperties(false);
 
-        assertNull(messageOperator.getQueueSize());
+            assertNotNull(messageOperator.getMessages(null));
+
+            verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
+        }
+
+        @Test
+        public void testGetMessages_limited() {
+
+            initializeQueueProperties(false);
+
+            assertNotNull(messageOperator.getMessages(1));
+
+            verify(rabbitTemplate, times(1)).execute(any());
+        }
+
+        @Test
+        public void testGetMessages_limited_invalid() {
+
+            initializeQueueProperties(false);
+
+            assertNotNull(messageOperator.getMessages(-1));
+
+            verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
+        }
+
+        @Test
+        public void testGetMessagesQueueNotExist() {
+
+            initializeQueueProperties(true);
+
+            assertNull(messageOperator.getMessages(null));
+
+            verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
+        }
     }
 
-    @Test
-    public void testGetMessages() {
+    @Nested
+    class publishCertainMessage {
+        @Test
+        public void testPublishCertainMessage() {
 
-        initializeQueueProperties(false);
+            initializeQueueProperties(false);
 
-        assertNotNull(messageOperator.getMessages(null));
+            final Map<String, Message> messageCache = new HashMap<>();
+            final VirgilMessage virgilMessage = mock(VirgilMessage.class);
 
-        verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
+            final Message message = new Message(MESSAGE_BODY.getBytes(), new MessageProperties());
+
+            messageCache.put(FINGER_PRINT, message);
+
+            when(virgilMessage.getFingerprint()).thenReturn(FINGER_PRINT);
+
+            messageOperator.setMessageCache(messageCache);
+
+            assertTrue(messageOperator.publishCertainMessage(virgilMessage.getFingerprint()));
+
+            verify(rabbitTemplate, times(1)).convertAndSend(eq(BINDER_NAME), eq(BINDING_KEY), any(Message.class));
+        }
+
+        @Test
+        public void testPublishCertainMessageInvalidFingerPrint() {
+            // null
+            assertFalse(messageOperator.publishCertainMessage(null));
+
+            // empty
+            assertFalse(messageOperator.publishCertainMessage(""));
+        }
+
+        @Test
+        public void testPublishCertainMessageInvalidMessageCache() {
+            // null; messageCache intentionally not populated
+            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+
+            // not contain; messageCache intentionally initialized as empty
+            messageOperator.setMessageCache(new HashMap<>());
+            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+        }
+
     }
 
-    @Test
-    public void testGetMessages_limited() {
+    @Nested
+    class ackMessages {
 
-        initializeQueueProperties(false);
+        @Test
+        public void testAckMessages() {
 
-        assertNotNull(messageOperator.getMessages(1));
+            initializeQueueProperties(false);
 
-        verify(rabbitTemplate, times(1)).execute(any());
+            assertTrue(messageOperator.dropMessages());
+
+            verify(rabbitTemplate, times(1)).execute(any());
+        }
+
+        @Test
+        public void testAckMessagesQueueNotExist() {
+
+            initializeQueueProperties(true);
+
+            assertFalse(messageOperator.dropMessages());
+
+            verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
+        }
+
     }
 
-    @Test
-    public void testGetMessages_limited_invalid() {
+    @Nested
+    class ackCertainMessage {
 
-        initializeQueueProperties(false);
+        @Test
+        public void testAckCertainMessage() {
 
-        assertNotNull(messageOperator.getMessages(-1));
+            //Arrange
+            initializeQueueProperties(false);
 
-        verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
+            //Act
+            messageOperator.ackCertainMessage(FINGER_PRINT);
+
+            //Assert
+            verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
+        }
+
+        @Test
+        public void testAckCertainMessageInvalidFingerPrint() {
+            // null
+            assertFalse(messageOperator.ackCertainMessage(null));
+
+            // empty
+            assertFalse(messageOperator.ackCertainMessage(""));
+        }
+
+        @Test
+        public void shouldNotCallExecuteIfQueueSizeIsNull() {
+
+            initializeQueueProperties(true);
+
+            assertFalse(messageOperator.ackCertainMessage(FINGER_PRINT));
+
+            verify(rabbitTemplate, times(0)).execute(any());
+        }
+
+        @Test
+        public void shouldReturnFalseIfResponseFromBasicGetIsNull() {
+            //Arrange
+            initializeQueueProperties(false);
+
+
+            //Act
+            final boolean result = messageOperator.ackCertainMessage(FINGER_PRINT);
+
+            //Assert
+            assertThat(result).isFalse();
+        }
     }
 
-    @Test
-    public void testGetMessagesQueueNotExist() {
+    @Nested
+    class testHandleAckCertainMessage {
 
-        initializeQueueProperties(true);
+        @Test
+        void shouldPassFalseToAutoAckInBasicGet() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
 
-        assertNull(messageOperator.getMessages(null));
+            final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-        verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService,"");
+
+            final Channel mockChannel = mock(Channel.class);
+
+            final ArgumentCaptor<Boolean> autoAckCapture = ArgumentCaptor.forClass(Boolean.class);
+
+            when(mockChannel.basicGet(eq(QUEUE_NAME), autoAckCapture.capture())).thenReturn(null);
+
+            //Act
+            handleAckCertainMessage.doInRabbit(mockChannel);
+
+            //Assert
+            assertThat(autoAckCapture.getValue()).isFalse();
+        }
+
+        @Test
+        void shouldReturnNullIfBasicGetReturnsNull() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
+
+            final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
+
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService,"");
+
+            final Channel mockChannel = mock(Channel.class);
+
+            when(mockChannel.basicGet(QUEUE_NAME, false)).thenReturn(null);
+
+            //Act
+            final String result = handleAckCertainMessage.doInRabbit(mockChannel);
+
+            //Assert
+            assertThat(result).isNull();
+        }
+
+        @Test
+        void shouldCallBasicAckIfFingerMatchesCurrentMessageFingerprint() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
+
+            final long deliveryTag = 123L;
+            final boolean redeliver = false;
+            final String fingerprint = "12313920123912";
+
+            final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
+
+            final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
+                .setBody("bodymessage")
+                .setFingerprint(fingerprint)
+                .build();
+
+            when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
+
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService,fingerprint);
+
+            final GetResponse mockGetResponse = mock(GetResponse.class);
+            when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
+            when(mockGetResponse.getEnvelope()).thenReturn(new Envelope(deliveryTag, redeliver, EXCHANGE_NAME, BINDING_KEY));
+
+
+            final Channel mockChannel = mock(Channel.class);
+            when(mockChannel.basicGet(QUEUE_NAME, false)).thenReturn(mockGetResponse);
+
+            //Act
+            final String result = handleAckCertainMessage.doInRabbit(mockChannel);
+
+            //Assert
+            assertThat(result).isNull();
+            verify(mockChannel, times(1)).basicAck(deliveryTag, false);
+        }
     }
 
-    @Test
-    public void testPublishCertainMessage() {
+    @Nested
+    class testHandleDropMessages {
 
-        initializeQueueProperties(false);
+        @Test
+        void shouldCallQueuePurge() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
 
-        final Map<String, Message> messageCache = new HashMap<>();
-        final VirgilMessage virgilMessage = mock(VirgilMessage.class);
+            final Channel mockChannel = mock(Channel.class);
 
-        final Message message = new Message(MESSAGE_BODY.getBytes(), new MessageProperties());
+            final HandleDropMessages handleDropMessages = new HandleDropMessages(messageOperator);
 
-        messageCache.put(FINGER_PRINT, message);
+            //Act
+            handleDropMessages.doInRabbit(mockChannel);
 
-        when(virgilMessage.getFingerprint()).thenReturn(FINGER_PRINT);
+            //Assert
+            verify(mockChannel, times(1)).queuePurge(any());
+        }
 
-        messageOperator.setMessageCache(messageCache);
+        @Test
+        void shouldReturnNullOnSuccess() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
 
-        assertTrue(messageOperator.publishCertainMessage(virgilMessage.getFingerprint()));
+            final Channel mockChannel = mock(Channel.class);
 
-        verify(rabbitTemplate, times(1)).convertAndSend(eq(BINDER_NAME), eq(BINDING_KEY), any(Message.class));
+            final HandleDropMessages handleDropMessages = new HandleDropMessages(messageOperator);
+
+            //Act
+            final Void result = handleDropMessages.doInRabbit(mockChannel);
+
+            //Assert
+            assertThat(result).isEqualTo(null);
+        }
     }
 
-    @Test
-    public void testPublishCertainMessageInvalidFingerPrint() {
-        // null
-        assertFalse(messageOperator.publishCertainMessage(null));
+    @Nested
+    class testHandleGetMessages {
 
-        // empty
-        assertFalse(messageOperator.publishCertainMessage(""));
-    }
+        @Test
+        void shouldPassFalseToAutoAckInBasicGet() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
 
-    @Test
-    public void testPublishCertainMessageInvalidMessageCache() {
-        // null; messageCache intentionally not populated
-        assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+            final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-        // not contain; messageCache intentionally initialized as empty
-        messageOperator.setMessageCache(new HashMap<>());
-        assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
-    }
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
 
-    @Test
-    public void testAckMessages() {
+            final Channel mockChannel = mock(Channel.class);
 
-        initializeQueueProperties(false);
+            final ArgumentCaptor<Boolean> autoAckCapture = ArgumentCaptor.forClass(Boolean.class);
 
-        assertTrue(messageOperator.dropMessages());
+            when(mockChannel.basicGet(eq(QUEUE_NAME), autoAckCapture.capture())).thenReturn(null);
 
-        verify(rabbitTemplate, times(1)).execute(any());
-    }
+            //Act
+            handleGetMessages.doInRabbit(mockChannel);
 
-    @Test
-    public void testAckMessagesQueueNotExist() {
+            //Assert
+            assertThat(autoAckCapture.getValue()).isFalse();
+        }
 
-        initializeQueueProperties(true);
+        @Test
+        void shouldReturnNullIfBasicGetReturnsNull() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
 
-        assertFalse(messageOperator.dropMessages());
+            final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-        verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
-    }
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
 
-    @Test
-    public void testAckCertainMessage() {
+            final Channel mockChannel = mock(Channel.class);
 
-        initializeQueueProperties(false);
+            when(mockChannel.basicGet(QUEUE_NAME, false)).thenReturn(null);
 
-        assertTrue(messageOperator.ackCertainMessage(FINGER_PRINT));
+            //Act
+            final Void result = handleGetMessages.doInRabbit(mockChannel);
 
-        verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
-    }
+            //Assert
+            assertThat(result).isEqualTo(null);
+        }
 
-    @Test
-    public void testAckCertainMessageInvalidFingerPrint() {
-        // null
-        assertFalse(messageOperator.ackCertainMessage(null));
+        @Test
+        void shouldAddMessageToDlqMessages() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
 
-        // empty
-        assertFalse(messageOperator.ackCertainMessage(""));
-    }
+            final long deliveryTag = 123L;
+            final boolean redeliver = false;
+            final String fingerprint = "uniqueFingerprint";
+            final String body = "bodymessage";
 
-    @Test
-    public void testAckCertainMessageQueueNotExist() {
+            final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-        initializeQueueProperties(true);
+            final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
+                .setBody(body)
+                .setFingerprint(fingerprint)
+                .build();
 
-        assertFalse(messageOperator.ackCertainMessage(FINGER_PRINT));
+            when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-        verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
+
+            final GetResponse mockGetResponse = mock(GetResponse.class);
+            when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
+            when(mockGetResponse.getEnvelope()).thenReturn(new Envelope(deliveryTag, redeliver, EXCHANGE_NAME, BINDING_KEY));
+
+
+            final Channel mockChannel = mock(Channel.class);
+            when(mockChannel.basicGet(QUEUE_NAME, false)).thenReturn(mockGetResponse);
+
+            //Act
+            handleGetMessages.doInRabbit(mockChannel);
+
+            //Assert
+            assertThat(handleGetMessages.getDlqMessages()).isEqualTo(Arrays.asList(
+                ImmutableVirgilMessage.builder()
+                    .setBody(body)
+                    .setFingerprint(fingerprint)
+                    .build()
+            ));
+        }
+
+        @Test
+        void shouldAddMessageToMessageLookup() throws Exception {
+            //Arrange
+            initializeQueueProperties(false);
+
+            final long deliveryTag = 123L;
+            final boolean redeliver = false;
+            final String fingerprint = "uniqueFingerprint";
+            final String body = "bodymessage";
+
+            final MessageProperties mockMessageProperties = mock(MessageProperties.class);
+            final MessagePropertiesConverter messagePropertiesConverter = mock(MessagePropertiesConverter.class);
+
+            when(messagePropertiesConverter.toMessageProperties(any(), any(), any())).thenReturn(mockMessageProperties);
+
+            final MessageConverterService messageConverterService = mock(MessageConverterService.class);
+
+            final Message expectedMessage = new Message(body.getBytes(), mockMessageProperties);
+
+            final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
+                .setBody(body)
+                .setFingerprint(fingerprint)
+                .build();
+
+            when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
+
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
+
+            final GetResponse mockGetResponse = mock(GetResponse.class);
+            when(mockGetResponse.getBody()).thenReturn(body.getBytes());
+            when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
+            when(mockGetResponse.getEnvelope()).thenReturn(new Envelope(deliveryTag, redeliver, EXCHANGE_NAME, BINDING_KEY));
+
+
+            final Channel mockChannel = mock(Channel.class);
+            when(mockChannel.basicGet(QUEUE_NAME, false)).thenReturn(mockGetResponse);
+
+            //Act
+            handleGetMessages.doInRabbit(mockChannel);
+
+            //Assert
+            assertThat(handleGetMessages.getMessageLookup()).contains(entry(fingerprint, expectedMessage));
+        }
     }
 
     private void initializeQueueProperties(final boolean testQueueNotExist) {
