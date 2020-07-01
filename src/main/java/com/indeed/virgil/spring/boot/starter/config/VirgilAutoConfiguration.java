@@ -12,5 +12,5 @@ import org.springframework.context.annotation.Import;
     VirgilEndpointsConfiguration.class,
     VirgilConfig.class
 })
-class VirgilAutoConfiguration {
+public class VirgilAutoConfiguration {
 }
