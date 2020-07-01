@@ -48,7 +48,7 @@ publishing {
         mavenJava(MavenPublication) {
             groupId = 'com.indeed'
             artifactId = 'virgil-spring-boot-starter' // use the name from ext['indeed.publish.name']
-            version = '1.0.0-SNAPSHOT' // use whatever version makes sense for your project
+            version = '1.1.0-SNAPSHOT' // use whatever version makes sense for your project
 
             from components.java
         }
