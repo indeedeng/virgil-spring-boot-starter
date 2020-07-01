@@ -80,6 +80,6 @@ sed -i "s/${VERSION_STRING}/${NEW_VERSION_STRING}/i" $BUILD_GRADLE_PATH
 
 
 # commit
-git commit -am "Checking in built artifacts for Prod; Upped version to ${NEW_VERSION_STRING}"
+git commit -am "Checking in built artifacts for Prod; Upped version to ${NEW_VERSION}"
 git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
 
