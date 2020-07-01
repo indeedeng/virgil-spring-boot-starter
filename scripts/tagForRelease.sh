@@ -79,7 +79,10 @@ sed -i "s/${VERSION_STRING}/${NEW_VERSION_STRING}/i" $BUILD_GRADLE_PATH
 
 
 
-# commit
+# Forcing resources to be added during this step
+git add -f src/main/resources/META-INF
 git commit -am "Checking in built artifacts for Prod; Upped version to ${NEW_VERSION}"
+git push
 git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+git push origin "v${NEW_VERSION}"
 
