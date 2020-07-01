@@ -22,15 +22,13 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_D
 @Component
 @Endpoint(id = GET_DLQ_MESSAGES_ENDPOINT_ID)
 class GetDlqMessagesEndpoint implements IVirgilEndpoint {
-
     private static final Logger LOG = LoggerFactory.getLogger(GetDlqMessagesEndpoint.class);
 
     private final MessageOperator messageOperator;
 
     @Autowired
     public GetDlqMessagesEndpoint(
-        final MessageOperator messageOperator,
-        final MessageConverterService messageConverterService
+        final MessageOperator messageOperator
     ) {
         this.messageOperator = messageOperator;
     }
