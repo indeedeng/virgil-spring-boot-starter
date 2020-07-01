@@ -2,6 +2,7 @@ package com.indeed.virgil.spring.boot.starter.config;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.lang.Nullable;
@@ -143,16 +144,16 @@ public class VirgilPropertyConfig {
 
         private String type;
 
-        private RabbitSettings rabbitSettings;
+        private RabbitProperties rabbitProperties;
 
         public BinderProperties(
             final String name,
             final String type,
-            final RabbitSettings rabbitSettings
+            final RabbitProperties rabbitProperties
         ) {
             this.name = name;
             this.type = type;
-            this.rabbitSettings = rabbitSettings;
+            this.rabbitProperties = rabbitProperties;
         }
 
         public String getName() {
@@ -163,63 +164,8 @@ public class VirgilPropertyConfig {
             return type;
         }
 
-        public RabbitSettings getRabbitSettings() {
-            return rabbitSettings;
-        }
-    }
-
-    public static class RabbitSettings {
-
-        public String addresses;
-
-        public String host;
-
-        public int port;
-
-        public String username;
-
-        public String password;
-
-        public String virtualHost;
-
-        public RabbitSettings(
-            final String addresses,
-            final String host,
-            final int port,
-            final String username,
-            final String password,
-            final String virtualHost
-        ) {
-            this.addresses = addresses;
-            this.host = host;
-            this.port = port;
-            this.username = username;
-            this.password = password;
-            this.virtualHost = virtualHost;
-        }
-
-        public String getAddresses() {
-            return this.addresses;
-        }
-
-        public String getHost() {
-            return this.host;
-        }
-
-        public int getPort() {
-            return this.port;
-        }
-
-        public String getUsername() {
-            return this.username;
-        }
-
-        public String getPassword() {
-            return this.password;
-        }
-
-        public String getVirtualHost() {
-            return this.virtualHost;
+        public RabbitProperties getRabbitProperties() {
+            return rabbitProperties;
         }
     }
 }

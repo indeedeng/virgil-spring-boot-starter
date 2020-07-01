@@ -2,7 +2,6 @@ package com.indeed.virgil.spring.boot.starter.services;
 
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig.BinderProperties;
-import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig.RabbitSettings;
 import com.rabbitmq.client.Address;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -14,6 +13,7 @@ import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.rabbit.connection.AbstractConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.boot.autoconfigure.amqp.RabbitProperties;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
@@ -70,16 +70,15 @@ public class TestRabbitMqConnectionService {
             //Arrange
             final String binderName = "testBinder";
 
-            final RabbitSettings rabbitSettings = new RabbitSettings(
-                "example:1111",
-                null,
-                0,
-                "username",
-                "password",
-                "virtual"
-            );
+            final RabbitProperties rabbitProperties = new RabbitProperties();
+            rabbitProperties.setAddresses("example:1111");
+            rabbitProperties.setHost(null);
+            rabbitProperties.setPort(0);
+            rabbitProperties.setUsername("username");
+            rabbitProperties.setPassword("password");
+            rabbitProperties.setVirtualHost("virtual");
 
-            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitSettings));
+            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitProperties));
 
             //Act
             final AmqpAdmin result = rabbitMqConnectionService.getAmqpAdmin(binderName);
@@ -93,16 +92,15 @@ public class TestRabbitMqConnectionService {
             //Arrange
             final String binderName = "testBinder";
 
-            final RabbitSettings rabbitSettings = new RabbitSettings(
-                "example:1111",
-                null,
-                0,
-                "username",
-                "password",
-                "virtual"
-            );
+            final RabbitProperties rabbitProperties = new RabbitProperties();
+            rabbitProperties.setAddresses("example:1111");
+            rabbitProperties.setHost(null);
+            rabbitProperties.setPort(0);
+            rabbitProperties.setUsername("username");
+            rabbitProperties.setPassword("password");
+            rabbitProperties.setVirtualHost("virtual");
 
-            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitSettings));
+            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitProperties));
 
             //Act
             rabbitMqConnectionService.getAmqpAdmin(binderName);
@@ -142,16 +140,15 @@ public class TestRabbitMqConnectionService {
             //Arrange
             final String binderName = "testBinder";
 
-            final RabbitSettings rabbitSettings = new RabbitSettings(
-                "example:1111",
-                null,
-                0,
-                "username",
-                "password",
-                "virtual"
-            );
+            final RabbitProperties rabbitProperties = new RabbitProperties();
+            rabbitProperties.setAddresses("example:1111");
+            rabbitProperties.setHost(null);
+            rabbitProperties.setPort(0);
+            rabbitProperties.setUsername("username");
+            rabbitProperties.setPassword("password");
+            rabbitProperties.setVirtualHost("virtual");
 
-            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitSettings));
+            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitProperties));
 
             //Act
             final RabbitTemplate result = rabbitMqConnectionService.getRabbitTemplate(binderName);
@@ -165,16 +162,15 @@ public class TestRabbitMqConnectionService {
             //Arrange
             final String binderName = "testBinder";
 
-            final RabbitSettings rabbitSettings = new RabbitSettings(
-                "example:1111",
-                null,
-                0,
-                "username",
-                "password",
-                "virtual"
-            );
+            final RabbitProperties rabbitProperties = new RabbitProperties();
+            rabbitProperties.setAddresses("example:1111");
+            rabbitProperties.setHost(null);
+            rabbitProperties.setPort(0);
+            rabbitProperties.setUsername("username");
+            rabbitProperties.setPassword("password");
+            rabbitProperties.setVirtualHost("virtual");
 
-            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitSettings));
+            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitProperties));
 
             //Act
             rabbitMqConnectionService.getRabbitTemplate(binderName);
@@ -229,16 +225,13 @@ public class TestRabbitMqConnectionService {
             final String binderName = "testBinderName";
             final String addressesString = "example:1111";
 
-            final RabbitSettings rabbitSettings = new RabbitSettings(
-                addressesString,
-                null,
-                0,
-                "username",
-                "password",
-                "virtual"
-            );
+            final RabbitProperties rabbitProperties = new RabbitProperties();
+            rabbitProperties.setAddresses(addressesString);
+            rabbitProperties.setUsername("username");
+            rabbitProperties.setPassword("password");
+            rabbitProperties.setVirtualHost("virtual");
 
-            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitSettings));
+            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitProperties));
 
             final List<Address> expectedAddresses = Arrays.asList(Address.parseAddresses(addressesString));
 
@@ -256,16 +249,15 @@ public class TestRabbitMqConnectionService {
             //Arrange
             final String binderName = "testBinderName";
 
-            final RabbitSettings rabbitSettings = new RabbitSettings(
-                null,
-                "example",
-                1111,
-                "username",
-                "password",
-                "virtual"
-            );
+            final RabbitProperties rabbitProperties = new RabbitProperties();
+            rabbitProperties.setHost("example");
+            rabbitProperties.setPort(1111);
+            rabbitProperties.setUsername("username");
+            rabbitProperties.setPassword("password");
+            rabbitProperties.setVirtualHost("virtual");
 
-            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitSettings));
+
+            when(mockVirgilPropertyConfig.getBinderProperties(anyString())).thenReturn(new BinderProperties(binderName, "rabbit", rabbitProperties));
 
             //Act
             final AbstractConnectionFactory result = getConnectionFactory(rabbitMqConnectionService, binderName);
@@ -273,9 +265,8 @@ public class TestRabbitMqConnectionService {
             //Assert
             final List<Address> actualAddresses = (List<Address>) ReflectionTestUtils.getField(result, "addresses");
 
-            assertThat(actualAddresses).isNull();
-            assertThat(result.getHost()).isEqualTo("example");
-            assertThat(result.getPort()).isEqualTo(1111);
+            assertThat(actualAddresses.get(0).getHost()).isEqualTo("example");
+            assertThat(actualAddresses.get(0).getPort()).isEqualTo(1111);
         }
     }
 

@@ -68,18 +68,13 @@ public class RabbitMqConnectionService {
 
         final CachingConnectionFactory cachingConnectionFactory = new CachingConnectionFactory();
 
-        final String addresses = binderProperties.getRabbitSettings().getAddresses();
-        if ((addresses != null) && !addresses.isEmpty()) {
-            cachingConnectionFactory.setAddresses(addresses);
-        } else {
-            cachingConnectionFactory.setHost(binderProperties.getRabbitSettings().getHost());
-            cachingConnectionFactory.setPort(binderProperties.getRabbitSettings().getPort());
-        }
+        final String addresses = binderProperties.getRabbitProperties().determineAddresses();
+        cachingConnectionFactory.setAddresses(addresses);
 
-        cachingConnectionFactory.setUsername(binderProperties.getRabbitSettings().getUsername());
-        cachingConnectionFactory.setPassword(binderProperties.getRabbitSettings().getPassword());
+        cachingConnectionFactory.setUsername(binderProperties.getRabbitProperties().determineUsername());
+        cachingConnectionFactory.setPassword(binderProperties.getRabbitProperties().determinePassword());
 
-        cachingConnectionFactory.setVirtualHost(binderProperties.getRabbitSettings().getVirtualHost());
+        cachingConnectionFactory.setVirtualHost(binderProperties.getRabbitProperties().determineVirtualHost());
         cachingConnectionFactory.setPublisherReturns(true);
 
         updateCachedConnectionFactory(binderName, cachingConnectionFactory);
