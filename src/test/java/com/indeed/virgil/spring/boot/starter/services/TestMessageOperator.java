@@ -174,17 +174,6 @@ public class TestMessageOperator {
             // empty
             assertFalse(messageOperator.publishCertainMessage(""));
         }
-
-        @Test
-        public void testPublishCertainMessageInvalidMessageCache() {
-            // null; messageCache intentionally not populated
-            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
-
-            // not contain; messageCache intentionally initialized as empty
-            messageOperator.setMessageCache(new HashMap<>());
-            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
-        }
-
     }
 
     @Nested

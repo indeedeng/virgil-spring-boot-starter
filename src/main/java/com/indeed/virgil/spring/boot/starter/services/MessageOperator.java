@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MessageOperator {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageOperator.class);
+    private static int DEFAULT_MESSAGE_SIZE = 200;
 
     private final VirgilPropertyConfig virgilPropertyConfig;
     private final RabbitMqConnectionService rabbitMqConnectionService;
@@ -39,6 +40,7 @@ public class MessageOperator {
     private volatile MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
 
     private Map<String, Message> messageCache;
+
 
     public MessageOperator(
         final VirgilPropertyConfig virgilPropertyConfig,
@@ -105,8 +107,12 @@ public class MessageOperator {
         }
 
         if ((messageCache == null) || !messageCache.containsKey(fingerprint)) {
-            LOG.error("Server side error happened. Can not identify message content.");
-            return false;
+            // re-generate the messageCache again
+            getMessages(DEFAULT_MESSAGE_SIZE);
+            if (!messageCache.containsKey(fingerprint)) {
+                LOG.error("Can not identify message with target fingerprint: " + fingerprint);
+                return false;
+            }
         }
 
         getReadRabbitTemplate().convertAndSend(getReadExchangeName(), getReadBindingKey(), messageCache.get(fingerprint));
