@@ -49,6 +49,7 @@ public class TestMessageOperator {
     private static final String EXCHANGE_NAME = "exchange";
     private static final String QUEUE_NAME = "default-queue-name";
     private static final String BINDER_NAME = "default-binder-name";
+    private static final Integer DEFAULT_QUEUE_SIZE = 200;
     private static final Integer QUEUE_SIZE_3 = 3;
     private static final Integer QUEUE_SIZE_0 = 0;
     private static final String FINGER_PRINT = "04222b1ddbd35132da9684f0c9c452a2";
@@ -176,15 +177,24 @@ public class TestMessageOperator {
         }
 
         @Test
-        public void testPublishCertainMessageInvalidMessageCache() {
-            // null; messageCache intentionally not populated
+        public void testPublishCertainMessageEmptyMessageCache() {
+            initializeQueueProperties(false);
             assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
-
-            // not contain; messageCache intentionally initialized as empty
-            messageOperator.setMessageCache(new HashMap<>());
-            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+            // if messageCache is empty, the method will call getMessages() function to re-generate it
+            verify(rabbitTemplate, times(DEFAULT_QUEUE_SIZE)).execute(any());
         }
 
+        @Test
+        public void testPublishCertainMessageInvalidMessageCache() {
+            final Message message = mock(Message.class);
+            initializeQueueProperties(false);
+            final Map<String, Message> messageCache = new HashMap<>();
+            messageCache.put("invalid", message);
+            messageOperator.setMessageCache(messageCache);
+            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+            // if messageCache doesn't contain target finger print, the method will call getMessages() function to re-generate it
+            verify(rabbitTemplate, times(DEFAULT_QUEUE_SIZE)).execute(any());
+        }
     }
 
     @Nested

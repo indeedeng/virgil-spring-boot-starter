@@ -30,15 +30,22 @@ class PublishMessageEndpoint implements IVirgilEndpoint {
 
     @WriteOperation
     public EndpointResponse<Serializable> index(final String fingerprint) {
-
         // ack message from the source queue; then publish message into the target/sink queue
-        // edge case situation.. if process crashed in between, or ack success but publish failed, will result to missing message
-        // in case we republish onto the same queue, and we publish first then ack,
-        // we may ended up with acking both messages on that queue
-        final boolean isSuccess = (messageOperator.ackCertainMessage(fingerprint) && messageOperator.publishCertainMessage(fingerprint));
-
+        // edge case: target message may exists in both original queue and target queue if process crashed in between
+        final boolean isPublished = messageOperator.publishCertainMessage(fingerprint);
+        if (!isPublished) {
+            return ImmutableEndpointResponse.builder()
+                .setData("fail to publish message")
+                .build();
+        }
+        final boolean isRemoved = messageOperator.ackCertainMessage(fingerprint);
+        if (!isRemoved) {
+            return ImmutableEndpointResponse.builder()
+                .setData("has published but fail to remove the message")
+                .build();
+        }
         return ImmutableEndpointResponse.builder()
-            .setData(isSuccess ? "Success!" : "Failure")
+            .setData("Success!")
             .build();
     }
 
