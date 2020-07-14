@@ -33,13 +33,13 @@ fi
 
 
 # Verify that branch is set to master
-#CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-#
-## fail if not set
-#if [[ "$CURRENT_BRANCH" != "master" ]]; then
-#  echo "Change to master branch before running this script. [Current Branch: $CURRENT_BRANCH]"
-#  exit 1
-#fi
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+# fail if not set
+if [[ "$CURRENT_BRANCH" != "master" ]]; then
+  echo "Change to master branch before running this script. [Current Branch: $CURRENT_BRANCH]"
+  exit 1
+fi
 
 ## Debug logs
 #echo "$CURRENT_BRANCH"
