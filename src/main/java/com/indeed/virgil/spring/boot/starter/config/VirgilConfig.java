@@ -1,10 +1,12 @@
 package com.indeed.virgil.spring.boot.starter.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.indeed.virgil.spring.boot.starter.services.DefaultMessageConverter;
 import com.indeed.virgil.spring.boot.starter.services.IMessageConverter;
 import com.indeed.virgil.spring.boot.starter.services.MessageConverterService;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import com.indeed.virgil.spring.boot.starter.services.RabbitMqConnectionService;
+import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -40,7 +42,12 @@ class VirgilConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public IMessageConverter messageConverter() {
-        return new DefaultMessageConverter();
+    public IMessageConverter messageConverter(final VirgilMessageUtils virgilMessageUtils) {
+        return new DefaultMessageConverter(virgilMessageUtils);
+    }
+
+    @Bean
+    public VirgilMessageUtils virgilMessageUtils() {
+        return new VirgilMessageUtils(new ObjectMapper());
     }
 }

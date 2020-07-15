@@ -18,7 +18,6 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.PUBLI
 @Component
 @Endpoint(id = PUBLISH_MESSAGE_ENDPOINT_ID)
 class PublishMessageEndpoint implements IVirgilEndpoint {
-
     private static final Logger LOG = LoggerFactory.getLogger(PublishMessageEndpoint.class);
 
     private final MessageOperator messageOperator;

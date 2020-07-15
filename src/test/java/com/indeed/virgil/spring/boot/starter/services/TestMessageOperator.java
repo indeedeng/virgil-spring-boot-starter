@@ -333,6 +333,7 @@ public class TestMessageOperator {
             final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
                 .setBody("bodymessage")
                 .setFingerprint(fingerprint)
+                .setId(String.format("f_%s", fingerprint))
                 .build();
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
@@ -455,6 +456,7 @@ public class TestMessageOperator {
             final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
                 .setBody(body)
                 .setFingerprint(fingerprint)
+                .setId(String.format("f_%s", fingerprint))
                 .build();
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
@@ -477,6 +479,7 @@ public class TestMessageOperator {
                 ImmutableVirgilMessage.builder()
                     .setBody(body)
                     .setFingerprint(fingerprint)
+                    .setId(String.format("f_%s", fingerprint))
                     .build()
             ));
         }
@@ -503,6 +506,7 @@ public class TestMessageOperator {
             final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
                 .setBody(body)
                 .setFingerprint(fingerprint)
+                .setId(String.format("f_%s", fingerprint))
                 .build();
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
