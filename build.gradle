@@ -9,6 +9,8 @@ repositories {
 
 dependencies {
 
+    implementation 'com.google.code.findbugs:jsr305:3.0.2'
+
     // Spring Boot
     compile "org.springframework.boot:spring-boot-actuator:2.2.4.RELEASE"
     compile "org.springframework.boot:spring-boot-starter-amqp:2.2.4.RELEASE"

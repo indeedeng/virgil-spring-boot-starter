@@ -1,6 +1,7 @@
 package com.indeed.virgil.spring.boot.starter.services;
 
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
+import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableVirgilMessage;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleAckCertainMessage;
@@ -25,7 +26,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter;
 import org.springframework.amqp.rabbit.support.MessagePropertiesConverter;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -53,6 +53,7 @@ public class TestMessageOperator {
     private static final Integer QUEUE_SIZE_3 = 3;
     private static final Integer QUEUE_SIZE_0 = 0;
     private static final String FINGER_PRINT = "04222b1ddbd35132da9684f0c9c452a2";
+    private static final String MESSAGE_ID = "f_04222b1ddbd35132da9684f0c9c452a2";
     private static final String MESSAGE_BODY = "body";
     private static final String BINDING_KEY = "#";
 
@@ -146,6 +147,7 @@ public class TestMessageOperator {
 
     @Nested
     class publishCertainMessage {
+
         @Test
         public void testPublishCertainMessage() {
 
@@ -156,13 +158,14 @@ public class TestMessageOperator {
 
             final Message message = new Message(MESSAGE_BODY.getBytes(), new MessageProperties());
 
-            messageCache.put(FINGER_PRINT, message);
+            messageCache.put(MESSAGE_ID, message);
 
             when(virgilMessage.getFingerprint()).thenReturn(FINGER_PRINT);
+            when(virgilMessage.getId()).thenReturn(MESSAGE_ID);
 
             messageOperator.setMessageCache(messageCache);
 
-            assertTrue(messageOperator.publishCertainMessage(virgilMessage.getFingerprint()));
+            assertTrue(messageOperator.publishCertainMessage(virgilMessage.getId()));
 
             verify(rabbitTemplate, times(1)).convertAndSend(eq(BINDER_NAME), eq(BINDING_KEY), any(Message.class));
         }
@@ -179,7 +182,7 @@ public class TestMessageOperator {
         @Test
         public void testPublishCertainMessageEmptyMessageCache() {
             initializeQueueProperties(false);
-            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+            assertFalse(messageOperator.publishCertainMessage(MESSAGE_ID));
             // if messageCache is empty, the method will call getMessages() function to re-generate it
             verify(rabbitTemplate, times(DEFAULT_QUEUE_SIZE)).execute(any());
         }
@@ -191,7 +194,7 @@ public class TestMessageOperator {
             final Map<String, Message> messageCache = new HashMap<>();
             messageCache.put("invalid", message);
             messageOperator.setMessageCache(messageCache);
-            assertFalse(messageOperator.publishCertainMessage(FINGER_PRINT));
+            assertFalse(messageOperator.publishCertainMessage(MESSAGE_ID));
             // if messageCache doesn't contain target finger print, the method will call getMessages() function to re-generate it
             verify(rabbitTemplate, times(DEFAULT_QUEUE_SIZE)).execute(any());
         }
@@ -232,7 +235,7 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            messageOperator.ackCertainMessage(FINGER_PRINT);
+            messageOperator.ackCertainMessage(MESSAGE_ID);
 
             //Assert
             verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
@@ -241,10 +244,10 @@ public class TestMessageOperator {
         @Test
         public void testAckCertainMessageInvalidFingerPrint() {
             // null
-            assertFalse(messageOperator.ackCertainMessage(null));
+            assertFalse(messageOperator.ackCertainMessage(null).isSuccess());
 
             // empty
-            assertFalse(messageOperator.ackCertainMessage(""));
+            assertFalse(messageOperator.ackCertainMessage("").isSuccess());
         }
 
         @Test
@@ -252,7 +255,9 @@ public class TestMessageOperator {
 
             initializeQueueProperties(true);
 
-            assertFalse(messageOperator.ackCertainMessage(FINGER_PRINT));
+            final AckCertainMessageResponse response = messageOperator.ackCertainMessage(MESSAGE_ID);
+
+            assertFalse(response.isSuccess());
 
             verify(rabbitTemplate, times(0)).execute(any());
         }
@@ -262,12 +267,11 @@ public class TestMessageOperator {
             //Arrange
             initializeQueueProperties(false);
 
-
             //Act
-            final boolean result = messageOperator.ackCertainMessage(FINGER_PRINT);
+            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(MESSAGE_ID);
 
             //Assert
-            assertThat(result).isFalse();
+            assertThat(result.isSuccess()).isFalse();
         }
     }
 
@@ -282,7 +286,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService,"");
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, "");
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -305,7 +309,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService,"");
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, "");
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -326,6 +330,7 @@ public class TestMessageOperator {
             final long deliveryTag = 123L;
             final boolean redeliver = false;
             final String fingerprint = "12313920123912";
+            final String messageId = String.format("f_%s", fingerprint);
 
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
@@ -333,12 +338,12 @@ public class TestMessageOperator {
             final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
                 .setBody("bodymessage")
                 .setFingerprint(fingerprint)
-                .setId(String.format("f_%s", fingerprint))
+                .setId(messageId)
                 .build();
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService,fingerprint);
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -404,7 +409,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -427,7 +432,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -461,7 +466,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -493,6 +498,7 @@ public class TestMessageOperator {
             final boolean redeliver = false;
             final String fingerprint = "uniqueFingerprint";
             final String body = "bodymessage";
+            final String messageId = String.format("f_%s", fingerprint);
 
             final MessageProperties mockMessageProperties = mock(MessageProperties.class);
             final MessagePropertiesConverter messagePropertiesConverter = mock(MessagePropertiesConverter.class);
@@ -506,12 +512,12 @@ public class TestMessageOperator {
             final VirgilMessage virgilMessage = ImmutableVirgilMessage.builder()
                 .setBody(body)
                 .setFingerprint(fingerprint)
-                .setId(String.format("f_%s", fingerprint))
+                .setId(messageId)
                 .build();
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService,10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getBody()).thenReturn(body.getBytes());
@@ -526,7 +532,7 @@ public class TestMessageOperator {
             handleGetMessages.doInRabbit(mockChannel);
 
             //Assert
-            assertThat(handleGetMessages.getMessageLookup()).contains(entry(fingerprint, expectedMessage));
+            assertThat(handleGetMessages.getMessageLookup()).contains(entry(messageId, expectedMessage));
         }
     }
 

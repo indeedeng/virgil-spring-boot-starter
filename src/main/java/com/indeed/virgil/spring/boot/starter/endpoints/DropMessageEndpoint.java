@@ -1,5 +1,6 @@
 package com.indeed.virgil.spring.boot.starter.endpoints;
 
+import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.EndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableEndpointResponse;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
@@ -33,10 +34,12 @@ public class DropMessageEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index(final String fingerprint) {
+    public EndpointResponse<Serializable> index(final String messageId) {
+
+        final AckCertainMessageResponse response = messageOperator.ackCertainMessage(messageId);
 
         return ImmutableEndpointResponse.builder()
-            .setData(messageOperator.ackCertainMessage(fingerprint) ? "Success!" : "Failure")
+            .setData(response.isSuccess() ? "Success!" : "Failure")
             .build();
     }
 

@@ -47,6 +47,7 @@ class VirgilConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public VirgilMessageUtils virgilMessageUtils() {
         return new VirgilMessageUtils(new ObjectMapper());
     }
