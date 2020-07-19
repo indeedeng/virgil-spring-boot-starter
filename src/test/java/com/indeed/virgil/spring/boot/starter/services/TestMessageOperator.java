@@ -27,7 +27,6 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter;
 import org.springframework.amqp.rabbit.support.MessagePropertiesConverter;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -867,7 +866,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId+"2");
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId + "2");
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
