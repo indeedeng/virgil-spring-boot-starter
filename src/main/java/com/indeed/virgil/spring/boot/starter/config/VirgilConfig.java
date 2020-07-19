@@ -26,7 +26,7 @@ class VirgilConfig {
     }
 
     @Bean
-    public MessageOperator messageOperator(
+    MessageOperator messageOperator(
         final RabbitMqConnectionService rabbitMqConnectionService,
         final MessageConverterService messageConverterService
     ) {
@@ -34,7 +34,7 @@ class VirgilConfig {
     }
 
     @Bean
-    public MessageConverterService messageConverterService(
+    MessageConverterService messageConverterService(
         final IMessageConverter messageConverter
     ) {
         return new MessageConverterService(messageConverter);
@@ -42,13 +42,13 @@ class VirgilConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public IMessageConverter messageConverter(final VirgilMessageUtils virgilMessageUtils) {
+    IMessageConverter messageConverter(final VirgilMessageUtils virgilMessageUtils) {
         return new DefaultMessageConverter(virgilMessageUtils);
     }
 
     @Bean
     @ConditionalOnMissingBean
-    public VirgilMessageUtils virgilMessageUtils() {
+    VirgilMessageUtils virgilMessageUtils() {
         return new VirgilMessageUtils(new ObjectMapper());
     }
 }

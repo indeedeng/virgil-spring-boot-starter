@@ -21,14 +21,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-
-// TODO think about lock, consider add lock (if needed)
 
 public class MessageOperator {
 
@@ -66,6 +65,12 @@ public class MessageOperator {
         return (Integer) properties.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
     }
 
+    /**
+     * Retrieves messages from the DLQ up to the limit passed in
+     *
+     * @param limit
+     * @return
+     */
     public List<VirgilMessage> getMessages(@Nullable final Integer limit) {
 
         // initialize messageLookup on each method call; messageLookup is acting as server side cache for messages.
@@ -74,8 +79,9 @@ public class MessageOperator {
         final Integer queueSize = getQueueSize();
         if (queueSize == null) {
             LOG.error("Queue size is null.");
-            return null;
+            return Collections.emptyList();
         }
+
         final int numToRetrieve = Optional.ofNullable(limit)
             .filter(value -> value > 0)
             .orElse(queueSize);
@@ -103,6 +109,7 @@ public class MessageOperator {
 
     /**
      * take messageId from UI, lookup from server side message cache for message body and publish
+     *
      * @param messageId
      * @return
      */
@@ -123,13 +130,13 @@ public class MessageOperator {
         }
 
 
-
         getReadRabbitTemplate().convertAndSend(getReadExchangeName(), getReadBindingKey(), messageCache.get(messageId));
         return true;
     }
 
     /**
      * Drop all messages in the queue.
+     *
      * @return
      */
     public boolean dropMessages() {
@@ -149,6 +156,7 @@ public class MessageOperator {
 
     /**
      * Acknowledges a message on the DLQ
+     *
      * @param messageId
      * @return
      */
@@ -183,7 +191,7 @@ public class MessageOperator {
         final ImmutableAckCertainMessageResponse.Builder responseBuilder = ImmutableAckCertainMessageResponse.builder()
             .setSuccess(handleAckCertainMessage.hasMessageBeenAckd());
 
-        if(handleAckCertainMessage.getAckedMessage() != null) {
+        if (handleAckCertainMessage.getAckedMessage() != null) {
             responseBuilder.setMessage(handleAckCertainMessage.getAckedMessage());
         }
 
@@ -211,7 +219,7 @@ public class MessageOperator {
         return handleRepublishMessage.isRepublishSuccessful();
     }
 
-    protected static class HandleRepublishMessage implements  ChannelCallback<Void> {
+    protected static class HandleRepublishMessage implements ChannelCallback<Void> {
 
         private final MessageOperator messageOperator;
         private final MessagePropertiesConverter messagePropertiesConverter;
@@ -235,7 +243,7 @@ public class MessageOperator {
         @Override
         public Void doInRabbit(Channel channel) throws Exception {
             final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
-            if(response == null) {
+            if (response == null) {
                 return null;
             }
 
@@ -255,6 +263,7 @@ public class MessageOperator {
 
         /**
          * Returns true if the message was found and ack'd, otherwise returns false
+         *
          * @return
          */
         public boolean isRepublishSuccessful() {
@@ -287,7 +296,7 @@ public class MessageOperator {
         @Override
         public String doInRabbit(final Channel channel) throws Exception {
             final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
-            if(response == null) {
+            if (response == null) {
                 return null;
             }
 
@@ -306,6 +315,7 @@ public class MessageOperator {
 
         /**
          * Returns true if the message was found and ack'd, otherwise returns false
+         *
          * @return
          */
         public boolean hasMessageBeenAckd() {
@@ -314,9 +324,12 @@ public class MessageOperator {
 
         /**
          * Returns ackedMessage if message has been ack'd otherwise returns null
+         *
          * @return
          */
-        public Message getAckedMessage() { return this.ackedMessage; }
+        public Message getAckedMessage() {
+            return this.ackedMessage;
+        }
     }
 
     protected static class HandleDropMessages implements ChannelCallback<Void> {
@@ -364,7 +377,7 @@ public class MessageOperator {
         @Override
         public Void doInRabbit(final Channel channel) throws Exception {
             final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
-            if(response == null) {
+            if (response == null) {
                 return null;
             }
 
