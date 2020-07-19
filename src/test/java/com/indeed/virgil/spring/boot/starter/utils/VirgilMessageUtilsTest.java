@@ -4,11 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
+import org.ietf.jgss.MessageProp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
+
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,13 +35,15 @@ public class VirgilMessageUtilsTest {
         void shouldReturnFingerprint() {
             //Arrange
             final byte[] body = "".getBytes();
-            final Message msg = new Message(body, new MessageProperties());
+            final MessageProperties messageProperties = new MessageProperties();
+            messageProperties.setTimestamp(new Date(1234567L));
+            final Message msg = new Message(body, messageProperties);
 
             //Act
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("e168e2c084bd946f2ab2343795488834");
+            assertThat(result).isEqualTo("a96c89461c301b20533cc981d253eda8");
         }
 
         @Test
