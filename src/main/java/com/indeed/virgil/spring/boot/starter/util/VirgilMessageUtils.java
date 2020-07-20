@@ -9,6 +9,9 @@ import javax.annotation.Nullable;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Utility class for common methods related to VirgilMessage and amqp's Message object.
+ */
 @Component
 public class VirgilMessageUtils {
     private static final Logger LOG = LoggerFactory.getLogger(VirgilMessageUtils.class);
@@ -35,7 +38,7 @@ public class VirgilMessageUtils {
         }
 
         final byte[] body = msg.getBody();
-        if(body != null) {
+        if (body != null) {
             md.update(body);
         }
 
@@ -65,7 +68,7 @@ public class VirgilMessageUtils {
     }
 
     /**
-     * Converts array of bytes into hex characters
+     * Converts array of bytes into hex characters.
      *
      * @param bytes
      * @return

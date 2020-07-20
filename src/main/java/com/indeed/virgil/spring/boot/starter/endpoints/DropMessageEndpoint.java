@@ -17,7 +17,7 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.DROP_
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING;
 
 /**
- * We 'drop' message by acking the message
+ * We 'drop' message by acking the message.
  */
 @Component
 @Endpoint(id = DROP_MESSAGE_ENDPOINT_ID)

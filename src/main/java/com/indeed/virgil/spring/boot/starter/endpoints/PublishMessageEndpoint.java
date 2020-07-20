@@ -1,6 +1,5 @@
 package com.indeed.virgil.spring.boot.starter.endpoints;
 
-import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.EndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableEndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;

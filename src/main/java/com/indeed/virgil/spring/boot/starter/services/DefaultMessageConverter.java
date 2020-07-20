@@ -4,7 +4,6 @@ import com.indeed.virgil.spring.boot.starter.models.ImmutableVirgilMessage;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
 import org.springframework.amqp.core.Message;
-import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 import java.util.Map;
