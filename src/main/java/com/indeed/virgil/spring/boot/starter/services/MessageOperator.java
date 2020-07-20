@@ -29,21 +29,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class MessageOperator {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageOperator.class);
-    private static int DEFAULT_MESSAGE_SIZE = 200;
 
     private final VirgilPropertyConfig virgilPropertyConfig;
     private final RabbitMqConnectionService rabbitMqConnectionService;
     private final MessageConverterService messageConverterService;
 
     private volatile MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
-
-    private Map<String, Message> messageCache;
-
 
     public MessageOperator(
         final VirgilPropertyConfig virgilPropertyConfig,
@@ -75,9 +70,6 @@ public class MessageOperator {
      */
     public List<VirgilMessage> getMessages(@Nullable final Integer limit) {
 
-        // initialize messageLookup on each method call; messageLookup is acting as server side cache for messages.
-        messageCache = new ConcurrentHashMap<>();
-
         final Integer queueSize = getQueueSize();
         if (queueSize == null) {
             LOG.error("Queue size is null.");
@@ -93,8 +85,6 @@ public class MessageOperator {
             getReadRabbitTemplate().execute(handleGetMessages);
         }
 
-        messageCache.putAll(handleGetMessages.getMessageLookup());
-
         //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
 
         // Close connection so 'Unacked' messages could be put back to 'Ready' state
@@ -106,33 +96,6 @@ public class MessageOperator {
 
     public boolean publishMessage(final Message msg) {
         getReadRabbitTemplate().convertAndSend(getReadExchangeName(), getReadBindingKey(), msg);
-        return true;
-    }
-
-    /**
-     * take messageId from UI, lookup from server side message cache for message body and publish
-     *
-     * @param messageId
-     * @return
-     */
-    public boolean publishCertainMessage(final String messageId) {
-
-        if (StringUtils.isEmpty(messageId)) {
-            LOG.error("messageId is null or empty.");
-            return false;
-        }
-
-        if ((messageCache == null) || !messageCache.containsKey(messageId)) {
-            // re-generate the messageCache again
-            getMessages(DEFAULT_MESSAGE_SIZE);
-            if (!messageCache.containsKey(messageId)) {
-                LOG.error("Can not identify message with target messageId: " + messageId);
-                return false;
-            }
-        }
-
-
-        getReadRabbitTemplate().convertAndSend(getReadExchangeName(), getReadBindingKey(), messageCache.get(messageId));
         return true;
     }
 
@@ -435,10 +398,5 @@ public class MessageOperator {
         final QueueProperties queueProperties = virgilPropertyConfig.getDefaultQueue();
 
         rabbitMqConnectionService.destroyConnectionsByName(queueProperties.getReadBinderName());
-    }
-
-    // VisibleForTesting
-    void setMessageCache(final Map<String, Message> messageCache) {
-        this.messageCache = messageCache;
     }
 }
