@@ -4,6 +4,8 @@ import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig.QueueProperties;
 import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableAckCertainMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.ImmutableRepublishMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
@@ -198,17 +200,21 @@ public class MessageOperator {
         return responseBuilder.build();
     }
 
-    public boolean republishMessage(final String messageId) {
+    public RepublishMessageResponse republishMessage(final String messageId) {
 
         if (StringUtils.isEmpty(messageId)) {
             LOG.warn("messageId is null or empty.");
-            return false;
+            return ImmutableRepublishMessageResponse.builder()
+                .setSuccess(false)
+                .build();
         }
 
         final Integer queueSize = getQueueSize();
         if (queueSize == null) {
             LOG.warn("Queue size is null.");
-            return false;
+            return ImmutableRepublishMessageResponse.builder()
+                .setSuccess(false)
+                .build();
         }
 
         final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(this, messagePropertiesConverter, messageConverterService, messageId);
@@ -216,7 +222,9 @@ public class MessageOperator {
             getReadRabbitTemplate().execute(handleRepublishMessage);
         }
 
-        return handleRepublishMessage.isRepublishSuccessful();
+        return ImmutableRepublishMessageResponse.builder()
+            .setSuccess(handleRepublishMessage.isRepublishSuccessful())
+            .build();
     }
 
     protected static class HandleRepublishMessage implements ChannelCallback<Void> {

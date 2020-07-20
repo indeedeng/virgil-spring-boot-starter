@@ -1,10 +1,6 @@
 package com.indeed.virgil.spring.boot.starter.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
-import org.ietf.jgss.MessageProp;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,10 +10,6 @@ import org.springframework.amqp.core.MessageProperties;
 import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class VirgilMessageUtilsTest {
 
@@ -25,7 +17,7 @@ public class VirgilMessageUtilsTest {
 
     @BeforeEach
     void setup() {
-        virgilMessageUtils = new VirgilMessageUtils(new ObjectMapper());
+        virgilMessageUtils = new VirgilMessageUtils();
     }
 
     @Nested
@@ -43,21 +35,45 @@ public class VirgilMessageUtilsTest {
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("a96c89461c301b20533cc981d253eda8");
+            assertThat(result).isEqualTo("eca11ca575db74bb0a450d18832b5f41");
         }
 
         @Test
-        void shouldThrowExceptionOnNull() throws JsonProcessingException {
+        void shouldReturnFingerprintForMessageWithNullBody() {
             //Arrange
-            final ObjectMapper objectMapper = mock(ObjectMapper.class);
+            final MessageProperties messageProperties = new MessageProperties();
+            messageProperties.setTimestamp(new Date(1234567L));
+            final Message msg = new Message(null, messageProperties);
 
-            when(objectMapper.writeValueAsBytes(any())).thenThrow(new JsonMappingException(""));
+            //Act
+            final String result = virgilMessageUtils.generateFingerprint(msg);
 
-            final VirgilMessageUtils localInstance = new VirgilMessageUtils(objectMapper);
+            //Assert
+            assertThat(result).isEqualTo("eca11ca575db74bb0a450d18832b5f41");
+        }
 
-            //Act / Assert
-            assertThatThrownBy(() -> localInstance.generateFingerprint(null))
-                .isExactlyInstanceOf(RuntimeException.class);
+        @Test
+        void shouldReturnFingerprintForMessageWithNoProperties() {
+            //Arrange
+            final byte[] body = "asfdafdas".getBytes();
+            final Message msg = new Message(body, null);
+
+            //Act
+            final String result = virgilMessageUtils.generateFingerprint(msg);
+
+            //Assert
+            assertThat(result).isEqualTo("81f2dd8b7cf2ef9e7b3210c6741766b7");
+        }
+
+        @Test
+        void shouldReturnValidFingerprintWhenMessageIsNull() {
+            //Arrange
+
+            //Act
+            final String result = virgilMessageUtils.generateFingerprint(null);
+
+            //Assert
+            assertThat(result).isEqualTo("d41d8cd98f00b204e9800998ecf8427e");
         }
     }
 }

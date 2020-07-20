@@ -11,6 +11,8 @@ import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.core.MessagePropertiesBuilder;
 import org.springframework.util.DigestUtils;
 
+import java.util.Date;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
@@ -26,7 +28,7 @@ public class TestDefaultMessageConverter {
 
     @BeforeEach
     void setup() {
-        virgilMessageUtils = new VirgilMessageUtils(new ObjectMapper());
+        virgilMessageUtils = new VirgilMessageUtils();
         defaultMessageConverter = new DefaultMessageConverter(virgilMessageUtils);
     }
 
@@ -142,13 +144,11 @@ public class TestDefaultMessageConverter {
             .build();
         final Message msg = new Message(bodyBytes, msgProps);
 
-        final String expectedFingerprint = DigestUtils.md5DigestAsHex(new ObjectMapper().writeValueAsBytes(msg));
-
         //Act
         final VirgilMessage result = defaultMessageConverter.convertMessage(msg);
 
         //Assert
-        assertThat(result.getFingerprint()).isEqualTo(expectedFingerprint);
+        assertThat(result.getFingerprint()).isEqualTo("dcefe73ee0ce7ac11639160c6175e9c9");
     }
 
     @Test
@@ -181,6 +181,7 @@ public class TestDefaultMessageConverter {
             .setHeader(MESSAGE_HEADER_EXCEPTION, "this is why the message failed")
             .setHeader(MESSAGE_HEADER_ORIGINAL_ROUTING_KEY, "orig-routing-key")
             .setHeader(MESSAGE_HEADER_ORIGINAL_EXCHANGE, "someExchange")
+            .setTimestamp(new Date(123456L))
             .build();
         final Message msg = new Message(bodyBytes, msgProps);
 
@@ -188,6 +189,6 @@ public class TestDefaultMessageConverter {
         final VirgilMessage result = defaultMessageConverter.convertMessage(msg);
 
         //Assert
-        assertThat(result.getId()).isEqualTo(String.format("f_%s", "685a8fb53c4297fe8431c3df61fd8e66"));
+        assertThat(result.getId()).isEqualTo(String.format("f_%s", "d721abd9e24665d117c34c345d76a6ef"));
     }
 }

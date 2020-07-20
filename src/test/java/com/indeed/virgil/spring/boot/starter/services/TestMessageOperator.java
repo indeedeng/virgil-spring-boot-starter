@@ -3,6 +3,7 @@ package com.indeed.virgil.spring.boot.starter.services;
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
 import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableVirgilMessage;
+import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleAckCertainMessage;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleDropMessages;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -331,6 +333,44 @@ public class TestMessageOperator {
 
             //Act
             final AckCertainMessageResponse result = messageOperator.ackCertainMessage(MESSAGE_ID);
+
+            //Assert
+            assertThat(result.isSuccess()).isFalse();
+        }
+    }
+
+    @Nested
+    class republishMessage {
+
+        @Test
+        void shouldReturnSuccessIsFalseWhenMessageIdIsNull() {
+            //Arrange
+
+            //Act
+            final RepublishMessageResponse result = messageOperator.republishMessage(null);
+
+            //Assert
+            assertThat(result.isSuccess()).isFalse();
+        }
+
+        @Test
+        void shouldReturnSuccessIsFalseWhenMessageIdIsEmpty() {
+            //Arrange
+
+            //Act
+            final RepublishMessageResponse result = messageOperator.republishMessage("");
+
+            //Assert
+            assertThat(result.isSuccess()).isFalse();
+        }
+
+        @Test
+        void shouldReturnSuccessIsFalseIfNoQueueSize() {
+            //Arrange
+            initializeQueueProperties(true);
+
+            //Act
+            final RepublishMessageResponse result = messageOperator.republishMessage("123");
 
             //Assert
             assertThat(result.isSuccess()).isFalse();

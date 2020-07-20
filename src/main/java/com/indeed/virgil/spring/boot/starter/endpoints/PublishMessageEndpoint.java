@@ -3,6 +3,7 @@ package com.indeed.virgil.spring.boot.starter.endpoints;
 import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.EndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableEndpointResponse;
+import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,10 +32,10 @@ class PublishMessageEndpoint implements IVirgilEndpoint {
     @WriteOperation
     public EndpointResponse<Serializable> index(final String messageId) {
 
-        final boolean isMessageRepublished = messageOperator.republishMessage(messageId);
+        final RepublishMessageResponse response = messageOperator.republishMessage(messageId);
 
         return ImmutableEndpointResponse.builder()
-            .setData(isMessageRepublished ? "Success!" : "Failure")
+            .setData(response.isSuccess() ? "Success!" : "Failure")
             .build();
     }
 

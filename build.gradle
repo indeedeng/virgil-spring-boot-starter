@@ -13,7 +13,7 @@ dependencies {
 
     // Spring Boot
     compile "org.springframework.boot:spring-boot-actuator:2.2.4.RELEASE"
-    compile "org.springframework.boot:spring-boot-starter-amqp:2.2.4.RELEASE"
+    compile "org.springframework.boot:spring-boot-starter-amqp:2.3.0.RELEASE"
     annotationProcessor "org.springframework.boot:spring-boot-autoconfigure-processor:2.2.4.RELEASE"
 
     // Jackson libraries

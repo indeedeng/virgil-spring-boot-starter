@@ -1,6 +1,5 @@
 package com.indeed.virgil.spring.boot.starter.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.indeed.virgil.spring.boot.starter.services.DefaultMessageConverter;
 import com.indeed.virgil.spring.boot.starter.services.IMessageConverter;
 import com.indeed.virgil.spring.boot.starter.services.MessageConverterService;
@@ -47,8 +46,7 @@ class VirgilConfig {
     }
 
     @Bean
-    @ConditionalOnMissingBean
     VirgilMessageUtils virgilMessageUtils() {
-        return new VirgilMessageUtils(new ObjectMapper());
+        return new VirgilMessageUtils();
     }
 }
