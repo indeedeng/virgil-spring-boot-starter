@@ -19,10 +19,10 @@ public class VirgilMessageUtils {
     private static final char[] HEX_CHARS =
         {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
-    private final ThreadLocal<MessageDigest> messageDigest;
+    private final ThreadLocal<MessageDigest> messageDigestThreadLocal;
 
     public VirgilMessageUtils() {
-        messageDigest = new ThreadLocal<>();
+        messageDigestThreadLocal = new ThreadLocal<>();
     }
 
     public String generateFingerprint(@Nullable final Message msg) {
@@ -48,7 +48,7 @@ public class VirgilMessageUtils {
     }
 
     private MessageDigest getMessageDigest() {
-        MessageDigest md = messageDigest.get();
+        MessageDigest md = messageDigestThreadLocal.get();
         if (md != null) {
             return md;
         }
@@ -60,7 +60,7 @@ public class VirgilMessageUtils {
             throw new RuntimeException(ex);
         }
 
-        messageDigest.set(md);
+        messageDigestThreadLocal.set(md);
 
         return md;
     }
