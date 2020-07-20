@@ -94,11 +94,6 @@ public class MessageOperator {
         return handleGetMessages.getDlqMessages();
     }
 
-    public boolean publishMessage(final Message msg) {
-        getReadRabbitTemplate().convertAndSend(getReadExchangeName(), getReadBindingKey(), msg);
-        return true;
-    }
-
     /**
      * Drop all messages in the queue.
      *
