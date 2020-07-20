@@ -2,7 +2,6 @@ package com.indeed.virgil.spring.boot.starter.endpoints;
 
 import com.indeed.virgil.spring.boot.starter.models.EndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableEndpointResponse;
-import com.indeed.virgil.spring.boot.starter.services.MessageConverterService;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import com.indeed.virgil.spring.boot.starter.util.EndpointConstants;
 import org.junit.jupiter.api.Assertions;
@@ -11,7 +10,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.Serializable;
