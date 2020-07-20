@@ -28,28 +28,28 @@ public class VirgilMessageUtilsTest {
             //Arrange
             final byte[] body = "".getBytes();
             final MessageProperties messageProperties = new MessageProperties();
-            messageProperties.setTimestamp(new Date(1234567L));
+            messageProperties.setHeader("uniqueKey", "1");
             final Message msg = new Message(body, messageProperties);
 
             //Act
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("eca11ca575db74bb0a450d18832b5f41");
+            assertThat(result).isEqualTo("91c85dabc466d4d697b877245911c3f9");
         }
 
         @Test
         void shouldReturnFingerprintForMessageWithNullBody() {
             //Arrange
             final MessageProperties messageProperties = new MessageProperties();
-            messageProperties.setTimestamp(new Date(1234567L));
+            messageProperties.setHeader("uniqueKey", "1");
             final Message msg = new Message(null, messageProperties);
 
             //Act
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("eca11ca575db74bb0a450d18832b5f41");
+            assertThat(result).isEqualTo("91c85dabc466d4d697b877245911c3f9");
         }
 
         @Test

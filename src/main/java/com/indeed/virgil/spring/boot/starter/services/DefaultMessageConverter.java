@@ -5,6 +5,7 @@ import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
 import org.springframework.amqp.core.Message;
 import org.springframework.lang.Nullable;
+import org.springframework.util.StringUtils;
 
 import java.util.Map;
 
@@ -59,15 +60,11 @@ public class DefaultMessageConverter implements IMessageConverter {
         //set the id with a value that is not dependent on the server, this will allow us to reference the same message
         // in the queue without the message cache
         final String potentialMessageId = msg.getMessageProperties().getMessageId();
-        if (!isEmpty(potentialMessageId)) {
+        if (!StringUtils.isEmpty(potentialMessageId)) {
             virgilMessageBuilder.setId(String.format("i_%s", potentialMessageId));
         } else {
             virgilMessageBuilder.setId(String.format("f_%s", fingerprint));
         }
         return virgilMessageBuilder.build();
-    }
-
-    private boolean isEmpty(@Nullable final String s) {
-        return s == null || s.isEmpty();
     }
 }

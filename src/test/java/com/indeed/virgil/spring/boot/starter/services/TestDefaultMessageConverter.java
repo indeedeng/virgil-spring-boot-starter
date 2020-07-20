@@ -181,7 +181,6 @@ public class TestDefaultMessageConverter {
             .setHeader(MESSAGE_HEADER_EXCEPTION, "this is why the message failed")
             .setHeader(MESSAGE_HEADER_ORIGINAL_ROUTING_KEY, "orig-routing-key")
             .setHeader(MESSAGE_HEADER_ORIGINAL_EXCHANGE, "someExchange")
-            .setTimestamp(new Date(123456L))
             .build();
         final Message msg = new Message(bodyBytes, msgProps);
 
@@ -189,6 +188,6 @@ public class TestDefaultMessageConverter {
         final VirgilMessage result = defaultMessageConverter.convertMessage(msg);
 
         //Assert
-        assertThat(result.getId()).isEqualTo(String.format("f_%s", "d721abd9e24665d117c34c345d76a6ef"));
+        assertThat(result.getId()).isEqualTo(String.format("f_%s", "4838233e7a60c6e03659e4e201f0c89e"));
     }
 }
