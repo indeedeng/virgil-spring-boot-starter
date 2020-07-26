@@ -59,7 +59,16 @@ public class MessageOperator {
             return null;
         }
 
-        return (Integer) properties.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
+        final Object queueMessageCount = properties.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
+
+        Integer queueSize;
+        if(queueMessageCount instanceof String) {
+            queueSize = Integer.valueOf((String)queueMessageCount);
+        } else {
+            queueSize = (Integer)queueMessageCount;
+        }
+
+        return queueSize;
     }
 
     /**
@@ -69,29 +78,31 @@ public class MessageOperator {
      * @return
      */
     public List<VirgilMessage> getMessages(@Nullable final Integer limit) {
-
         final Integer queueSize = getQueueSize();
         if (queueSize == null) {
             LOG.error("Queue size is null.");
             return Collections.emptyList();
         }
 
-        final int numToRetrieve = Optional.ofNullable(limit)
-            .filter(value -> value > 0)
-            .orElse(queueSize);
+        try {
+            final int numToRetrieve = Optional.ofNullable(limit)
+                .filter(value -> value > 0)
+                .orElse(queueSize);
 
-        final HandleGetMessages handleGetMessages = new HandleGetMessages(this, messagePropertiesConverter, messageConverterService, numToRetrieve);
-        for (int i = 0; i < numToRetrieve; i++) {
-            getReadRabbitTemplate().execute(handleGetMessages);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(this, messagePropertiesConverter, messageConverterService, numToRetrieve);
+            for (int i = 0; i < numToRetrieve; i++) {
+                getReadRabbitTemplate().execute(handleGetMessages);
+            }
+
+            return handleGetMessages.getDlqMessages();
+        } finally {
+
+            //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
+
+            // Close connection so 'Unacked' messages could be put back to 'Ready' state
+            // Connection will be automatically reestablished on next Actuator endpoint invocation
+            destroyReadConnection();
         }
-
-        //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
-
-        // Close connection so 'Unacked' messages could be put back to 'Ready' state
-        // Connection will be automatically reestablished on next Actuator endpoint invocation
-        destroyReadConnection();
-
-        return handleGetMessages.getDlqMessages();
     }
 
     /**
@@ -137,25 +148,28 @@ public class MessageOperator {
                 .build();
         }
 
-        final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, messageId);
-        for (int i = 0; i < queueSize; i++) {
-            getReadRabbitTemplate().execute(handleAckCertainMessage);
+        try {
+
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, messageId);
+            for (int i = 0; i < queueSize; i++) {
+                getReadRabbitTemplate().execute(handleAckCertainMessage);
+            }
+
+            final ImmutableAckCertainMessageResponse.Builder responseBuilder = ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(handleAckCertainMessage.hasMessageBeenAckd());
+
+            if (handleAckCertainMessage.getAckedMessage() != null) {
+                responseBuilder.setMessage(handleAckCertainMessage.getAckedMessage());
+            }
+
+            return responseBuilder.build();
+        } finally {
+            //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
+
+            // Close connection so 'Unacked' messages could be put back to 'Ready' state
+            // Connection will be automatically reestablished on next Actuator endpoint invocation
+            destroyReadConnection();
         }
-
-        //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
-
-        // Close connection so 'Unacked' messages could be put back to 'Ready' state
-        // Connection will be automatically reestablished on next Actuator endpoint invocation
-        destroyReadConnection();
-
-        final ImmutableAckCertainMessageResponse.Builder responseBuilder = ImmutableAckCertainMessageResponse.builder()
-            .setSuccess(handleAckCertainMessage.hasMessageBeenAckd());
-
-        if (handleAckCertainMessage.getAckedMessage() != null) {
-            responseBuilder.setMessage(handleAckCertainMessage.getAckedMessage());
-        }
-
-        return responseBuilder.build();
     }
 
     public RepublishMessageResponse republishMessage(final String messageId) {
@@ -175,14 +189,24 @@ public class MessageOperator {
                 .build();
         }
 
-        final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(this, messagePropertiesConverter, messageConverterService, messageId);
-        for (int i = 0; i < queueSize; i++) {
-            getReadRabbitTemplate().execute(handleRepublishMessage);
-        }
+        try {
 
-        return ImmutableRepublishMessageResponse.builder()
-            .setSuccess(handleRepublishMessage.isRepublishSuccessful())
-            .build();
+
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(this, messagePropertiesConverter, messageConverterService, messageId);
+            for (int i = 0; i < queueSize; i++) {
+                getReadRabbitTemplate().execute(handleRepublishMessage);
+            }
+
+            return ImmutableRepublishMessageResponse.builder()
+                .setSuccess(handleRepublishMessage.isRepublishSuccessful())
+                .build();
+        } finally {
+            //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
+
+            // Close connection so 'Unacked' messages could be put back to 'Ready' state
+            // Connection will be automatically reestablished on next Actuator endpoint invocation
+            destroyReadConnection();
+        }
     }
 
     protected static class HandleRepublishMessage implements ChannelCallback<Void> {
@@ -207,7 +231,7 @@ public class MessageOperator {
         }
 
         @Override
-        public Void doInRabbit(Channel channel) throws Exception {
+        public Void doInRabbit(final Channel channel) throws Exception {
             final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
             if (response == null) {
                 return null;

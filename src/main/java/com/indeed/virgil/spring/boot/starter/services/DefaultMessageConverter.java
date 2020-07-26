@@ -31,7 +31,7 @@ public class DefaultMessageConverter implements IMessageConverter {
 
         final Map<String, Object> messageHeaders = msg.getMessageProperties().getHeaders();
 
-        for (Map.Entry<String, Object> messageHeader : messageHeaders.entrySet()) {
+        for (final Map.Entry<String, Object> messageHeader : messageHeaders.entrySet()) {
             if (!messageHeader.getKey().startsWith("x-")) {
                 virgilMessageBuilder.putHeaders(messageHeader.getKey(), messageHeader.getValue());
             }

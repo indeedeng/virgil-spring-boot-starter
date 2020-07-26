@@ -9,6 +9,8 @@ import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleAckC
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleDropMessages;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleGetMessages;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator.HandleRepublishMessage;
+import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
+import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.AMQP.BasicProperties;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Envelope;
@@ -23,22 +25,29 @@ import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
+import org.springframework.amqp.rabbit.connection.Connection;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitAdmin;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.rabbit.support.DefaultMessagePropertiesConverter;
 import org.springframework.amqp.rabbit.support.MessagePropertiesConverter;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.entry;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -104,7 +113,7 @@ public class TestMessageOperator {
     @Nested
     class getMessages {
         @Test
-        public void testGetMessages() {
+        void testGetMessages() {
             //Arrange
             initializeQueueProperties(false);
 
@@ -118,7 +127,7 @@ public class TestMessageOperator {
         }
 
         @Test
-        public void testGetMessages_limited() {
+        void testGetMessages_limited() {
             //Arrange
             initializeQueueProperties(false);
 
@@ -132,7 +141,7 @@ public class TestMessageOperator {
         }
 
         @Test
-        public void testGetMessages_limited_invalid() {
+        void testGetMessages_limited_invalid() {
             //Arrange
             initializeQueueProperties(false);
 
@@ -146,7 +155,7 @@ public class TestMessageOperator {
         }
 
         @Test
-        public void testGetMessagesQueueNotExist() {
+        void testGetMessagesQueueNotExist() {
             //Arrange
             initializeQueueProperties(true);
 
@@ -157,6 +166,44 @@ public class TestMessageOperator {
             assertThat(result).isEmpty();
 
             verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
+        }
+
+        @Test
+        void shouldDestroyConnectionAfterSuccess() {
+            //Arrange
+            initializeQueueProperties(false);
+
+            //Act
+            messageOperator.getMessages(null);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        @Test
+        void shouldDestroyConnectionAfterException() {
+            //Arrange
+            initializeQueueProperties(false);
+
+            when(rabbitMqConnectionService.getRabbitTemplate(any())).thenThrow(new RuntimeException());
+
+            //Act / Assert
+            assertThatThrownBy(() -> messageOperator.getMessages(null))
+                .isInstanceOf(RuntimeException.class);
+
+            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        @Test
+        void shouldNotDestroyConnectionIfQueueNotPresent() {
+            //Arrange
+            initializeQueueProperties(true);
+
+            //Act
+            messageOperator.getMessages(null);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(0)).destroyConnectionsByName(BINDER_NAME);
         }
     }
 
@@ -198,7 +245,6 @@ public class TestMessageOperator {
 
         @Test
         void testAckCertainMessage() {
-
             //Arrange
             initializeQueueProperties(false);
 
@@ -230,7 +276,7 @@ public class TestMessageOperator {
         }
 
         @Test
-        public void shouldNotCallExecuteIfQueueSizeIsNull() {
+        void shouldNotCallExecuteIfQueueSizeIsNull() {
             //Arrange
             initializeQueueProperties(true);
 
@@ -244,7 +290,7 @@ public class TestMessageOperator {
         }
 
         @Test
-        public void shouldReturnFalseIfResponseFromBasicGetIsNull() {
+        void shouldReturnFalseIfResponseFromBasicGetIsNull() {
             //Arrange
             initializeQueueProperties(false);
 
@@ -254,10 +300,76 @@ public class TestMessageOperator {
             //Assert
             assertThat(result.isSuccess()).isFalse();
         }
+
+        @Test
+        void shouldDestroyConnectionAfterSuccess() {
+            //Arrange
+            initializeQueueProperties(false);
+
+            //Act
+            messageOperator.ackCertainMessage(MESSAGE_ID);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        @Test
+        void shouldDestroyConnectionAfterException() {
+            //Arrange
+            initializeQueueProperties(false);
+
+            when(rabbitMqConnectionService.getRabbitTemplate(any())).thenThrow(new RuntimeException());
+
+            //Act / Assert
+            assertThatThrownBy(() -> messageOperator.ackCertainMessage(MESSAGE_ID))
+                .isInstanceOf(RuntimeException.class);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        @Test
+        void shouldNotDestroyConnectionIfQueueNotPresent() {
+            //Arrange
+            initializeQueueProperties(true);
+
+            //Act
+            messageOperator.ackCertainMessage(MESSAGE_ID);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(0)).destroyConnectionsByName(BINDER_NAME);
+        }
     }
 
     @Nested
     class republishMessage {
+
+        @Test
+        void shouldReturnSuccessIsTrue() throws IOException {
+            //Arrange
+            final String rabbitMessageId = "abc123";
+            final String messageId = "i_" + rabbitMessageId;
+
+            final MessageConverterService localMessageConvertService = new MessageConverterService(new DefaultMessageConverter(new VirgilMessageUtils()));
+
+            final MessageOperator localMessageOperator = new MessageOperator(virgilPropertyConfig, rabbitMqConnectionService, localMessageConvertService);
+
+            final RepublishMocks mocks = initializeMocksAndReturnChannel();
+
+            final Channel mockChannel = mocks.getChannel();
+
+            //channel mocks
+            final AMQP.BasicProperties basicProps = new AMQP.BasicProperties("", "UTF-8", null, null, null, null, null, null, rabbitMessageId, new Date(), null, null, null, null);
+            final Envelope envelope = new Envelope(1L, false, "", "");
+            final GetResponse response = new GetResponse(envelope, basicProps, "".getBytes(), 1);
+            when(mockChannel.basicGet(any(), anyBoolean())).thenReturn(response);
+
+            //Act
+            final RepublishMessageResponse result = localMessageOperator.republishMessage(messageId);
+
+            //Assert
+            assertThat(result.isSuccess()).isTrue();
+        }
 
         @Test
         void shouldReturnSuccessIsFalseWhenMessageIdIsNull() {
@@ -291,6 +403,102 @@ public class TestMessageOperator {
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
+        }
+
+        @Test
+        void shouldDestroyConnectionAfterSuccess() throws IOException {
+            //Arrange
+            final String rabbitMessageId = "abc123";
+            final String messageId = "i_" + rabbitMessageId;
+
+            final MessageConverterService localMessageConvertService = new MessageConverterService(new DefaultMessageConverter(new VirgilMessageUtils()));
+
+            final MessageOperator localMessageOperator = new MessageOperator(virgilPropertyConfig, rabbitMqConnectionService, localMessageConvertService);
+
+            final RepublishMocks mocks = initializeMocksAndReturnChannel();
+
+            final Channel mockChannel = mocks.getChannel();
+
+            //channel mocks
+            final AMQP.BasicProperties basicProps = new AMQP.BasicProperties("", "UTF-8", null, null, null, null, null, null, rabbitMessageId, new Date(), null, null, null, null);
+            final Envelope envelope = new Envelope(1L, false, "", "");
+            final GetResponse response = new GetResponse(envelope, basicProps, "".getBytes(), 1);
+            when(mockChannel.basicGet(any(), anyBoolean())).thenReturn(response);
+
+            //Act
+            localMessageOperator.republishMessage(messageId);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        @Test
+        void shouldDestroyConnectionAfterException() {
+            //Arrange
+            initializeQueueProperties(false);
+
+            when(rabbitTemplate.execute(any())).thenThrow(new RuntimeException());
+
+            //Act / Assert
+            assertThatThrownBy(() -> messageOperator.republishMessage("abc123"))
+                .isInstanceOf(RuntimeException.class);
+
+            //Assert
+            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        @Test
+        void shouldNotDestroyConnectionIfQueueNotPresent() {
+            //Arrange
+            initializeQueueProperties(true);
+
+            //Act
+            messageOperator.republishMessage("123");
+
+            //Assert
+            verify(rabbitMqConnectionService, times(0)).destroyConnectionsByName(BINDER_NAME);
+        }
+
+        RepublishMocks initializeMocksAndReturnChannel() {
+            final VirgilPropertyConfig.BinderProperties binderProperties = new VirgilPropertyConfig.BinderProperties(
+                BINDER_NAME,
+                null,
+                null
+            );
+
+            final VirgilPropertyConfig.QueueProperties queueProperties = new VirgilPropertyConfig.QueueProperties(
+                QUEUE_NAME,
+                BINDER_NAME,
+                binderProperties,
+                null,
+                BINDING_KEY,
+                null,
+                null
+            );
+            when(virgilPropertyConfig.getDefaultQueue()).thenReturn(queueProperties);
+
+            when(rabbitMqConnectionService.getAmqpAdmin(BINDER_NAME)).thenReturn(amqpAdmin);
+
+
+            final Properties properties = new Properties();
+            properties.put(RabbitAdmin.QUEUE_MESSAGE_COUNT.toString(), Integer.valueOf(1));
+
+            when(amqpAdmin.getQueueProperties(QUEUE_NAME)).thenReturn(properties);
+
+            final RabbitTemplate localRabbitTemplate = spy(RabbitTemplate.class);
+
+            final Channel mockChannel = mock(Channel.class);
+            final Connection mockConnection = mock(Connection.class);
+            final ConnectionFactory mockConnectionFactory = mock(ConnectionFactory.class);
+
+            when(mockConnection.createChannel(anyBoolean())).thenReturn(mockChannel);
+
+            when(mockConnectionFactory.createConnection()).thenReturn(mockConnection);
+
+            localRabbitTemplate.setConnectionFactory(mockConnectionFactory);
+            when(rabbitMqConnectionService.getRabbitTemplate(BINDER_NAME)).thenReturn(localRabbitTemplate);
+
+            return new RepublishMocks(localRabbitTemplate, mockChannel);
         }
     }
 
@@ -875,5 +1083,23 @@ public class TestMessageOperator {
 
         when(rabbitMqConnectionService.getRabbitTemplate(BINDER_NAME)).thenReturn(rabbitTemplate);
         when(rabbitTemplate.getConnectionFactory()).thenReturn(new CachingConnectionFactory());
+    }
+
+    static class RepublishMocks {
+        private Channel channel;
+        private RabbitTemplate rabbitTemplate;
+
+        public RepublishMocks(final RabbitTemplate rabbitTemplate, final Channel channel) {
+            this.rabbitTemplate = rabbitTemplate;
+            this.channel = channel;
+        }
+
+        public Channel getChannel() {
+            return this.channel;
+        }
+
+        public RabbitTemplate getRabbitTemplate() {
+            return this.rabbitTemplate;
+        }
     }
 }

@@ -23,8 +23,8 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.PUBLI
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.VIRGIL_PATH_PREFIX;
 
 /**
- * Ideally, we can inject all the properties required for us to operate our Virgil Spring Boot Admin plugin without
- * having users manually enter all the stuff we did here to make it work.
+ * Ideally, we can inject all the properties required for us to operate our Virgil Spring Boot Admin plugin without having users manually
+ * enter all the stuff we did here to make it work.
  */
 @Order(Ordered.HIGHEST_PRECEDENCE + 100)
 class VirgilPropertiesEnvironmentPostProcessor implements EnvironmentPostProcessor {

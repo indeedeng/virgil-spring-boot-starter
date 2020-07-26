@@ -10,6 +10,7 @@ public interface VirgilMessage {
 
     /**
      * Id should either be the messageId or the unique md5 digest of the message.
+     *
      * @return
      */
     String getId();
