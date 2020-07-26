@@ -5,6 +5,7 @@ import com.indeed.virgil.spring.boot.starter.services.IMessageConverter;
 import com.indeed.virgil.spring.boot.starter.services.MessageConverterService;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import com.indeed.virgil.spring.boot.starter.services.RabbitMqConnectionService;
+import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -24,7 +25,7 @@ class VirgilConfig {
     }
 
     @Bean
-    public MessageOperator messageOperator(
+    MessageOperator messageOperator(
         final RabbitMqConnectionService rabbitMqConnectionService,
         final MessageConverterService messageConverterService
     ) {
@@ -32,7 +33,7 @@ class VirgilConfig {
     }
 
     @Bean
-    public MessageConverterService messageConverterService(
+    MessageConverterService messageConverterService(
         final IMessageConverter messageConverter
     ) {
         return new MessageConverterService(messageConverter);
@@ -40,7 +41,12 @@ class VirgilConfig {
 
     @Bean
     @ConditionalOnMissingBean
-    public IMessageConverter messageConverter() {
-        return new DefaultMessageConverter();
+    IMessageConverter messageConverter(final VirgilMessageUtils virgilMessageUtils) {
+        return new DefaultMessageConverter(virgilMessageUtils);
+    }
+
+    @Bean
+    VirgilMessageUtils virgilMessageUtils() {
+        return new VirgilMessageUtils();
     }
 }

@@ -2,6 +2,10 @@ package com.indeed.virgil.spring.boot.starter.services;
 
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig.QueueProperties;
+import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.ImmutableAckCertainMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.ImmutableRepublishMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.GetResponse;
@@ -19,28 +23,22 @@ import org.springframework.lang.Nullable;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
-
-// TODO think about lock, consider add lock (if needed)
 
 public class MessageOperator {
 
     private static final Logger LOG = LoggerFactory.getLogger(MessageOperator.class);
-    private static int DEFAULT_MESSAGE_SIZE = 200;
 
     private final VirgilPropertyConfig virgilPropertyConfig;
     private final RabbitMqConnectionService rabbitMqConnectionService;
     private final MessageConverterService messageConverterService;
 
     private volatile MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
-
-    private Map<String, Message> messageCache;
-
 
     public MessageOperator(
         final VirgilPropertyConfig virgilPropertyConfig,
@@ -64,16 +62,20 @@ public class MessageOperator {
         return (Integer) properties.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
     }
 
+    /**
+     * Retrieves messages from the DLQ up to the limit passed in
+     *
+     * @param limit
+     * @return
+     */
     public List<VirgilMessage> getMessages(@Nullable final Integer limit) {
-
-        // initialize messageLookup on each method call; messageLookup is acting as server side cache for messages.
-        messageCache = new ConcurrentHashMap<>();
 
         final Integer queueSize = getQueueSize();
         if (queueSize == null) {
             LOG.error("Queue size is null.");
-            return null;
+            return Collections.emptyList();
         }
+
         final int numToRetrieve = Optional.ofNullable(limit)
             .filter(value -> value > 0)
             .orElse(queueSize);
@@ -82,8 +84,6 @@ public class MessageOperator {
         for (int i = 0; i < numToRetrieve; i++) {
             getReadRabbitTemplate().execute(handleGetMessages);
         }
-
-        messageCache.putAll(handleGetMessages.getMessageLookup());
 
         //TODO: Need to move this logic into RabbitMqConnectionService so it flushes the connection from cache
 
@@ -95,32 +95,8 @@ public class MessageOperator {
     }
 
     /**
-     * take fingerprint from UI, lookup from server side message cache for message body and publish
-     * @param fingerprint
-     * @return
-     */
-    public boolean publishCertainMessage(final String fingerprint) {
-
-        if (StringUtils.isEmpty(fingerprint)) {
-            LOG.error("messageId is null or empty.");
-            return false;
-        }
-
-        if ((messageCache == null) || !messageCache.containsKey(fingerprint)) {
-            // re-generate the messageCache again
-            getMessages(DEFAULT_MESSAGE_SIZE);
-            if (!messageCache.containsKey(fingerprint)) {
-                LOG.error("Can not identify message with target fingerprint: " + fingerprint);
-                return false;
-            }
-        }
-
-        getReadRabbitTemplate().convertAndSend(getReadExchangeName(), getReadBindingKey(), messageCache.get(fingerprint));
-        return true;
-    }
-
-    /**
      * Drop all messages in the queue.
+     *
      * @return
      */
     public boolean dropMessages() {
@@ -138,20 +114,30 @@ public class MessageOperator {
         return true;
     }
 
-    public boolean ackCertainMessage(final String fingerprint) {
+    /**
+     * Acknowledges a message on the DLQ
+     *
+     * @param messageId
+     * @return
+     */
+    public AckCertainMessageResponse ackCertainMessage(final String messageId) {
 
-        if (StringUtils.isEmpty(fingerprint)) {
-            LOG.error("fingerprint is null or empty.");
-            return false;
+        if (StringUtils.isEmpty(messageId)) {
+            LOG.error("messageId is null or empty.");
+            return ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(false)
+                .build();
         }
 
         final Integer queueSize = getQueueSize();
         if (queueSize == null) {
             LOG.error("Queue size is null.");
-            return false;
+            return ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(false)
+                .build();
         }
 
-        final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, fingerprint);
+        final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, messageId);
         for (int i = 0; i < queueSize; i++) {
             getReadRabbitTemplate().execute(handleAckCertainMessage);
         }
@@ -161,33 +147,69 @@ public class MessageOperator {
         // Close connection so 'Unacked' messages could be put back to 'Ready' state
         // Connection will be automatically reestablished on next Actuator endpoint invocation
         destroyReadConnection();
-        return handleAckCertainMessage.hasMessageBeenAckd();
+
+        final ImmutableAckCertainMessageResponse.Builder responseBuilder = ImmutableAckCertainMessageResponse.builder()
+            .setSuccess(handleAckCertainMessage.hasMessageBeenAckd());
+
+        if (handleAckCertainMessage.getAckedMessage() != null) {
+            responseBuilder.setMessage(handleAckCertainMessage.getAckedMessage());
+        }
+
+        return responseBuilder.build();
     }
 
-    protected static class HandleAckCertainMessage implements ChannelCallback<String> {
+    public RepublishMessageResponse republishMessage(final String messageId) {
+
+        if (StringUtils.isEmpty(messageId)) {
+            LOG.warn("messageId is null or empty.");
+            return ImmutableRepublishMessageResponse.builder()
+                .setSuccess(false)
+                .build();
+        }
+
+        final Integer queueSize = getQueueSize();
+        if (queueSize == null) {
+            LOG.warn("Queue size is null.");
+            return ImmutableRepublishMessageResponse.builder()
+                .setSuccess(false)
+                .build();
+        }
+
+        final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(this, messagePropertiesConverter, messageConverterService, messageId);
+        for (int i = 0; i < queueSize; i++) {
+            getReadRabbitTemplate().execute(handleRepublishMessage);
+        }
+
+        return ImmutableRepublishMessageResponse.builder()
+            .setSuccess(handleRepublishMessage.isRepublishSuccessful())
+            .build();
+    }
+
+    protected static class HandleRepublishMessage implements ChannelCallback<Void> {
 
         private final MessageOperator messageOperator;
         private final MessagePropertiesConverter messagePropertiesConverter;
         private final MessageConverterService messageConverterService;
-        private final String fingerprint;
-        private boolean messageFound = false;
+        private final String messageId;
 
-        public HandleAckCertainMessage(
+        private boolean messageRepublished;
+
+        public HandleRepublishMessage(
             final MessageOperator messageOperator,
             final MessagePropertiesConverter messagePropertiesConverter,
             final MessageConverterService messageConverterService,
-            final String fingerprint
+            final String messageId
         ) {
             this.messageOperator = messageOperator;
             this.messagePropertiesConverter = messagePropertiesConverter;
             this.messageConverterService = messageConverterService;
-            this.fingerprint = fingerprint;
+            this.messageId = messageId;
         }
 
         @Override
-        public String doInRabbit(final Channel channel) throws Exception {
+        public Void doInRabbit(Channel channel) throws Exception {
             final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
-            if(response == null) {
+            if (response == null) {
                 return null;
             }
 
@@ -196,8 +218,62 @@ public class MessageOperator {
             final Message message = new Message(response.getBody(), messageProps);
             final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
 
-            if (fingerprint.equals(virgilMessage.getFingerprint())) {
+            if (messageId.equals(virgilMessage.getId())) {
                 channel.basicAck(response.getEnvelope().getDeliveryTag(), false);
+
+                messageOperator.getReadRabbitTemplate().convertAndSend(messageOperator.getReadExchangeName(), messageOperator.getReadBindingKey(), message);
+                messageRepublished = true;
+            }
+            return null;
+        }
+
+        /**
+         * Returns true if the message was found and ack'd, otherwise returns false
+         *
+         * @return
+         */
+        public boolean isRepublishSuccessful() {
+            return this.messageRepublished;
+        }
+    }
+
+    protected static class HandleAckCertainMessage implements ChannelCallback<String> {
+
+        private final MessageOperator messageOperator;
+        private final MessagePropertiesConverter messagePropertiesConverter;
+        private final MessageConverterService messageConverterService;
+        private final String messageId;
+
+        private Message ackedMessage;
+        private boolean messageFound = false;
+
+        public HandleAckCertainMessage(
+            final MessageOperator messageOperator,
+            final MessagePropertiesConverter messagePropertiesConverter,
+            final MessageConverterService messageConverterService,
+            final String messageId
+        ) {
+            this.messageOperator = messageOperator;
+            this.messagePropertiesConverter = messagePropertiesConverter;
+            this.messageConverterService = messageConverterService;
+            this.messageId = messageId;
+        }
+
+        @Override
+        public String doInRabbit(final Channel channel) throws Exception {
+            final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
+            if (response == null) {
+                return null;
+            }
+
+            final MessageProperties messageProps =
+                messagePropertiesConverter.toMessageProperties(response.getProps(), response.getEnvelope(), "UTF-8");
+            final Message message = new Message(response.getBody(), messageProps);
+            final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
+
+            if (messageId.equals(virgilMessage.getId())) {
+                channel.basicAck(response.getEnvelope().getDeliveryTag(), false);
+                ackedMessage = message;
                 messageFound = true;
             }
             return null;
@@ -205,10 +281,20 @@ public class MessageOperator {
 
         /**
          * Returns true if the message was found and ack'd, otherwise returns false
+         *
          * @return
          */
         public boolean hasMessageBeenAckd() {
             return this.messageFound;
+        }
+
+        /**
+         * Returns ackedMessage if message has been ack'd otherwise returns null
+         *
+         * @return
+         */
+        public Message getAckedMessage() {
+            return this.ackedMessage;
         }
     }
 
@@ -257,7 +343,7 @@ public class MessageOperator {
         @Override
         public Void doInRabbit(final Channel channel) throws Exception {
             final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
-            if(response == null) {
+            if (response == null) {
                 return null;
             }
 
@@ -267,7 +353,7 @@ public class MessageOperator {
             final VirgilMessage virgilMessage = messageConverterService.mapMessage(message);
 
             dlqMessages.add(virgilMessage);
-            messageLookup.put(virgilMessage.getFingerprint(), message);
+            messageLookup.put(virgilMessage.getId(), message);
             return null;
         }
 
@@ -307,10 +393,5 @@ public class MessageOperator {
         final QueueProperties queueProperties = virgilPropertyConfig.getDefaultQueue();
 
         rabbitMqConnectionService.destroyConnectionsByName(queueProperties.getReadBinderName());
-    }
-
-    // VisibleForTesting
-    void setMessageCache(final Map<String, Message> messageCache) {
-        this.messageCache = messageCache;
     }
 }

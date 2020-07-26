@@ -3,7 +3,6 @@ package com.indeed.virgil.spring.boot.starter.endpoints;
 import com.indeed.virgil.spring.boot.starter.models.EndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableEndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
-import com.indeed.virgil.spring.boot.starter.services.MessageConverterService;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

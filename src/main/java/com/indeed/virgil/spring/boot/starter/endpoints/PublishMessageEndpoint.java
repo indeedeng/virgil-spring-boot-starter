@@ -2,6 +2,7 @@ package com.indeed.virgil.spring.boot.starter.endpoints;
 
 import com.indeed.virgil.spring.boot.starter.models.EndpointResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableEndpointResponse;
+import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,7 +19,6 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.PUBLI
 @Component
 @Endpoint(id = PUBLISH_MESSAGE_ENDPOINT_ID)
 class PublishMessageEndpoint implements IVirgilEndpoint {
-
     private static final Logger LOG = LoggerFactory.getLogger(PublishMessageEndpoint.class);
 
     private final MessageOperator messageOperator;
@@ -29,23 +29,12 @@ class PublishMessageEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index(final String fingerprint) {
-        // ack message from the source queue; then publish message into the target/sink queue
-        // edge case: target message may exists in both original queue and target queue if process crashed in between
-        final boolean isPublished = messageOperator.publishCertainMessage(fingerprint);
-        if (!isPublished) {
-            return ImmutableEndpointResponse.builder()
-                .setData("fail to publish message")
-                .build();
-        }
-        final boolean isRemoved = messageOperator.ackCertainMessage(fingerprint);
-        if (!isRemoved) {
-            return ImmutableEndpointResponse.builder()
-                .setData("has published but fail to remove the message")
-                .build();
-        }
+    public EndpointResponse<Serializable> index(final String messageId) {
+
+        final RepublishMessageResponse response = messageOperator.republishMessage(messageId);
+
         return ImmutableEndpointResponse.builder()
-            .setData("Success!")
+            .setData(response.isSuccess() ? "Success!" : "Failure")
             .build();
     }
 
