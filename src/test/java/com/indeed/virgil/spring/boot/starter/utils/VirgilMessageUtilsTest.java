@@ -1,6 +1,9 @@
 package com.indeed.virgil.spring.boot.starter.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
+import com.rabbitmq.client.LongString;
+import com.rabbitmq.client.impl.LongStringHelper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,7 +25,7 @@ public class VirgilMessageUtilsTest {
     class generateFingerprint {
 
         @Test
-        void shouldReturnFingerprint() {
+        void shouldReturnFingerprint() throws JsonProcessingException {
             //Arrange
             final byte[] body = "".getBytes();
             final MessageProperties messageProperties = new MessageProperties();
@@ -37,7 +40,7 @@ public class VirgilMessageUtilsTest {
         }
 
         @Test
-        void shouldReturnFingerprintForMessageWithNullBody() {
+        void shouldReturnFingerprintForMessageWithNullBody() throws JsonProcessingException {
             //Arrange
             final MessageProperties messageProperties = new MessageProperties();
             messageProperties.setHeader("uniqueKey", "1");
@@ -51,7 +54,7 @@ public class VirgilMessageUtilsTest {
         }
 
         @Test
-        void shouldReturnFingerprintForMessageWithNoProperties() {
+        void shouldReturnFingerprintForMessageWithNoProperties() throws JsonProcessingException {
             //Arrange
             final byte[] body = "asfdafdas".getBytes();
             final Message msg = new Message(body, null);
@@ -64,7 +67,7 @@ public class VirgilMessageUtilsTest {
         }
 
         @Test
-        void shouldReturnValidFingerprintWhenMessageIsNull() {
+        void shouldReturnValidFingerprintWhenMessageIsNull() throws JsonProcessingException {
             //Arrange
 
             //Act
@@ -72,6 +75,25 @@ public class VirgilMessageUtilsTest {
 
             //Assert
             assertThat(result).isEqualTo("d41d8cd98f00b204e9800998ecf8427e");
+        }
+
+        @Test
+        void shouldHandleNonSerializedItemInHeader() throws JsonProcessingException {
+            //Arrange
+            final byte[] body = "".getBytes();
+            final MessageProperties messageProperties = new MessageProperties();
+            messageProperties.setHeader("uniqueKey", "12312321");
+
+            final LongString item = LongStringHelper.asLongString("");
+            messageProperties.setHeader("item", item);
+
+            final Message msg = new Message(body, messageProperties);
+
+            //Act
+            final String result = virgilMessageUtils.generateFingerprint(msg);
+
+            //Assert
+            assertThat(result).isEqualTo("3154ebc077ff7b725955b065f71732f3");
         }
     }
 }

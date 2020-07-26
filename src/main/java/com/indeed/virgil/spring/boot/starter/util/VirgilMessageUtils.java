@@ -32,6 +32,7 @@ public class VirgilMessageUtils {
     }
 
     private synchronized String internalGenerateFingerprint(@Nullable final Message msg) {
+
         final MessageDigest md = getMessageDigest();
         if (msg == null) {
             return String.valueOf(encodeHex(md.digest()));
