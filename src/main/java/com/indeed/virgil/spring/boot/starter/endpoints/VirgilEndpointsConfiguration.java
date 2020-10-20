@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Import;
 
 /**
  * Configuration for the available endpoints.
- *
  */
 @Configuration
 @Import({
