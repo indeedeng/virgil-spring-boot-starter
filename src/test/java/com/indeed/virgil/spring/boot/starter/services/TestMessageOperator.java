@@ -57,12 +57,9 @@ public class TestMessageOperator {
     private static final String EXCHANGE_NAME = "exchange";
     private static final String QUEUE_NAME = "default-queue-name";
     private static final String BINDER_NAME = "default-binder-name";
-    private static final Integer DEFAULT_QUEUE_SIZE = 200;
     private static final Integer QUEUE_SIZE_3 = 3;
     private static final Integer QUEUE_SIZE_0 = 0;
-    private static final String FINGER_PRINT = "04222b1ddbd35132da9684f0c9c452a2";
     private static final String MESSAGE_ID = "f_04222b1ddbd35132da9684f0c9c452a2";
-    private static final String MESSAGE_BODY = "body";
     private static final String BINDING_KEY = "#";
 
     @Mock

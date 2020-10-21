@@ -153,6 +153,11 @@ public class MessageOperator {
             final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, messageId);
             for (int i = 0; i < queueSize; i++) {
                 getReadRabbitTemplate().execute(handleAckCertainMessage);
+
+                //break out of loop if we have ack'd the message
+                if(handleAckCertainMessage.hasMessageBeenAckd()) {
+                    break;
+                }
             }
 
             final ImmutableAckCertainMessageResponse.Builder responseBuilder = ImmutableAckCertainMessageResponse.builder()
@@ -268,6 +273,7 @@ public class MessageOperator {
         private final MessageConverterService messageConverterService;
         private final String messageId;
 
+        @Nullable
         private Message ackedMessage;
         private boolean messageFound = false;
 
@@ -317,6 +323,7 @@ public class MessageOperator {
          *
          * @return
          */
+        @Nullable
         public Message getAckedMessage() {
             return this.ackedMessage;
         }
