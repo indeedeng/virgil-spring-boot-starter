@@ -14,6 +14,10 @@ Name reference: https://en.wikipedia.org/wiki/Virgil
 
 ## Getting Started
 
+```
+compile 'com.indeed:virgil-spring-boot-starter'
+```
+
 ### Build Virgil UI Component
 
 #### Dev Build
