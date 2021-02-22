@@ -21,6 +21,13 @@ docker build --build-arg JAR_FILE=build/libs/\*.jar -t virgil/virgil-example-doc
 
 # Running environment
 
+To start the example app + rabbit:
 ```shell
-./runDocker.sh
+./startDocker.sh
 ```
+
+Once all the containers are running, you will be able to access
+* Spring Boot Admin - http://localhost:8080
+* RabbitMQ Management - http://localhost:15672
+  * username: *guest*
+  * password: *guest*
