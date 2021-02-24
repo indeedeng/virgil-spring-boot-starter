@@ -1,17 +1,8 @@
+
 spring:
-  cloud:
-    stream:
-      bindings:
-        virgilExchangeChannel:
-          destination: virgil-exchange
-      binders:
-        virgil-exchange:
-          type: rabbit
-          environment:
-            spring:
-              rabbitmq:
-                host: localhost
-                port: 5672
-                username: guest
-                password: guest
-                virtual-host: /
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
