@@ -8,7 +8,7 @@ group = 'com.indeed'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '1.8'
 
-// Reference: https://jitpack.io/
+// Reference: https://jitpack.io/#indeedeng/virgil-spring-boot-starter
 repositories {
 	mavenCentral()
 	maven { url 'https://repo.spring.io/milestone' }

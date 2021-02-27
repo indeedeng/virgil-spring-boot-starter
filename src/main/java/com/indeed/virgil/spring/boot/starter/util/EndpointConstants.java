@@ -8,6 +8,8 @@ public class EndpointConstants {
 
     public static final String GET_DLQ_MESSAGES_ENDPOINT_ID = "get-dlq-messages";
 
+    public static final String GET_QUEUES_ENDPOINT_ID = "get-queues";
+
     public static final String DROP_MESSAGE_ENDPOINT_ID = "drop-message";
 
     public static final String DROP_ALL_MESSAGES_ENDPOINT_ID = "drop-all-messages";

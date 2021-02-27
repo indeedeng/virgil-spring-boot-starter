@@ -9,7 +9,13 @@ import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Component
 @ConstructorBinding
@@ -62,9 +68,17 @@ public class VirgilPropertyConfig {
     }
 
     public QueueProperties getDefaultQueue() {
-        final Map.Entry<String, QueueProperties> entry = getQueues().entrySet().iterator().next();
+        final String firstQueueName = getQueueNames().get(0);
 
-        return getQueueProperties(entry.getKey());
+        return Objects.requireNonNull(getQueueProperties(firstQueueName));
+    }
+
+    /**
+     * Returns a list of queue keys from the config
+     * @return
+     */
+    public List<String> getQueueNames() {
+        return new ArrayList<>(getQueues().keySet());
     }
 
     public static class QueueProperties {
