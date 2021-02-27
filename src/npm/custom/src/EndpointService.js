@@ -18,15 +18,15 @@ export const getEndpointUrl = (instance, endpointId) => {
  *
  * @param {{axios: Object, endpoints: Array}} instance
  * @param endpointId
- * @param [queryParms={}]
+ * @param [queryParams={}]
  * @returns {Promise<{data: *, errors: [{message: string, code: string}]}>}
  */
-export const get = async (instance, endpointId, queryParms = {}) => {
+export const get = async (instance, endpointId, queryParams = {}) => {
 
     const getUrl = getEndpointUrl(instance, endpointId);
 
     const axiosResponse = await instance.axios.get(getUrl, {
-        params: queryParms
+        params: queryParams
     });
 
     const endpointResponse = axiosResponse.data;
