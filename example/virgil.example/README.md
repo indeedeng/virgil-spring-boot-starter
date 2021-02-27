@@ -21,10 +21,35 @@ docker build --build-arg JAR_FILE=build/libs/\*.jar -t virgil/virgil-example-doc
 
 # Running environment
 
-To start the example app + rabbit:
+### Start the example app + rabbit:
 ```shell
 ./startDocker.sh
 ```
+
+### Stop environment:
+```shell
+./stopDocker.sh
+```
+
+### To add messages to Queue
+* POST http://localhost:8080/message
+  * Payload
+  ```shell
+  {
+    "num": 15,
+    "sendToDlq": false
+  }
+  ```
+
+### To add messages to DLQ for Virgil:
+* POST http://localhost:8080/message
+  * Payload
+  ```shell
+  {
+    "num": 15,
+    "sendToDlq": true
+  }
+  ```
 
 Once all the containers are running, you will be able to access
 * Spring Boot Admin - http://localhost:8080
