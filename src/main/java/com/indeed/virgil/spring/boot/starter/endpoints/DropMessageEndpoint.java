@@ -22,7 +22,6 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPO
 @Component
 @Endpoint(id = DROP_MESSAGE_ENDPOINT_ID)
 public class DropMessageEndpoint implements IVirgilEndpoint {
-
     private static final Logger LOG = LoggerFactory.getLogger(DropMessageEndpoint.class);
 
 

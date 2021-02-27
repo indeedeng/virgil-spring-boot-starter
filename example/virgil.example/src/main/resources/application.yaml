@@ -1,8 +1,44 @@
-
+spring.boot.admin.client.instance.service-base-url: http://localhost:8080
 spring:
   rabbitmq:
-    host: localhost
+    host: virgil-rabbit
     port: 5672
     username: guest
     password: guest
     virtual-host: /
+  boot:
+    admin:
+      client:
+        url: http://localhost:8080
+      api-path: /instances
+
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  security:
+    enabled: false
+  endpoint:
+    health:
+      show-details: always
+
+virgil:
+  queues:
+    virgilDlq:
+      readName: virgil-dlq
+      readBinderName: virgilExchange
+      republishName: virgil-queue
+      republishBinderName: virgilExchange
+  binders:
+    virgilExchange:
+      name: virgil-exchange
+      type: rabbit
+      rabbitProperties:
+        host: virgil-rabbit
+        port: 5672
+        username: guest
+        password: guest
+        virtual-host: /

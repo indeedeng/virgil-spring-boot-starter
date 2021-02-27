@@ -44,7 +44,7 @@ gradle buildFrontEndProd
         * \<binderName\>
             * name
             * type: rabbit
-            * rabbitSettings
+            * rabbitProperties
                 * [Optional] addresses
                 * [Optional] host
                 * [Optional] port

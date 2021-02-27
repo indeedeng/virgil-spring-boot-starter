@@ -31,3 +31,8 @@ Once all the containers are running, you will be able to access
 * RabbitMQ Management - http://localhost:15672
   * username: *guest*
   * password: *guest*
+
+
+
+Next Steps
+* Add Virgil plugin

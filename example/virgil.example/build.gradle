@@ -8,10 +8,12 @@ group = 'com.indeed'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '1.8'
 
+// Reference: https://jitpack.io/
 repositories {
 	mavenCentral()
 	maven { url 'https://repo.spring.io/milestone' }
 	maven { url 'https://repo.spring.io/snapshot' }
+	maven { url "https://jitpack.io" } //needed for the gitlab reference
 }
 
 ext {
@@ -19,10 +21,15 @@ ext {
 }
 
 dependencies {
+	implementation 'com.github.indeedeng:virgil-spring-boot-starter:v1.2.0'
+
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'de.codecentric:spring-boot-admin-starter-client'
 	implementation 'de.codecentric:spring-boot-admin-starter-server'
+	//implementation 'org.springframework.boot:spring-boot-starter-security'
+
+
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.amqp:spring-rabbit-test'

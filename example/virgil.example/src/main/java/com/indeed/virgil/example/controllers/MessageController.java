@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Random;
 import java.util.UUID;
 
 @RestController
@@ -24,24 +25,23 @@ public class MessageController {
     }
 
     @PostMapping("/message")
-    public CustomMessage create(
-        @RequestBody final CustomMessage customMessage
-    ) throws JsonProcessingException {
-        messagePublisher.sendMessageToQueue(customMessage);
-
-        return customMessage;
-    }
-
-    @PostMapping("/generatemessages")
-    public boolean generateMany(
+    public boolean create(
         @RequestBody final GenerateMessagePayload payload
     ) throws JsonProcessingException {
-
-        //generate payload.num number of messages
-        for (int i = 0; i < payload.getNum(); i++) {
-            messagePublisher.sendMessageToQueue(new CustomMessage(i, UUID.randomUUID().toString()));
+        if(payload.getSendToDlq()) {
+            for (int i = 0; i < payload.getNum(); i++) {
+                messagePublisher.sendMessageToDlq(generateMessage());
+            }
+        } else {
+            for (int i = 0; i < payload.getNum(); i++) {
+                messagePublisher.sendMessageToQueue(generateMessage());
+            }
         }
 
         return true;
+    }
+
+    private CustomMessage generateMessage() {
+        return new CustomMessage(new Random().nextLong(), UUID.randomUUID().toString());
     }
 }
