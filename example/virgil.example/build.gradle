@@ -21,7 +21,7 @@ ext {
 }
 
 dependencies {
-	implementation 'com.github.indeedeng:virgil-spring-boot-starter:v1.2.0'
+	implementation 'com.github.indeedeng:virgil-spring-boot-starter:v1.2.1'
 
 	implementation 'org.springframework.boot:spring-boot-starter-amqp'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
