@@ -1,6 +1,5 @@
 package com.indeed.virgil.spring.boot.starter.utils;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
 import com.rabbitmq.client.LongString;
 import com.rabbitmq.client.impl.LongStringHelper;
@@ -25,7 +24,7 @@ public class VirgilMessageUtilsTest {
     class generateFingerprint {
 
         @Test
-        void shouldReturnFingerprint() throws JsonProcessingException {
+        void shouldReturnFingerprint() {
             //Arrange
             final byte[] body = "".getBytes();
             final MessageProperties messageProperties = new MessageProperties();
@@ -36,11 +35,11 @@ public class VirgilMessageUtilsTest {
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("91c85dabc466d4d697b877245911c3f9");
+            assertThat(result).isEqualTo("3e1bc27b4db8f518e7ebbb2da9912ec5");
         }
 
         @Test
-        void shouldReturnFingerprintForMessageWithNullBody() throws JsonProcessingException {
+        void shouldReturnFingerprintForMessageWithNullBody() {
             //Arrange
             final MessageProperties messageProperties = new MessageProperties();
             messageProperties.setHeader("uniqueKey", "1");
@@ -50,11 +49,11 @@ public class VirgilMessageUtilsTest {
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("91c85dabc466d4d697b877245911c3f9");
+            assertThat(result).isEqualTo("3e1bc27b4db8f518e7ebbb2da9912ec5");
         }
 
         @Test
-        void shouldReturnFingerprintForMessageWithNoProperties() throws JsonProcessingException {
+        void shouldReturnFingerprintForMessageWithNoProperties() {
             //Arrange
             final byte[] body = "asfdafdas".getBytes();
             final Message msg = new Message(body, null);
@@ -67,7 +66,7 @@ public class VirgilMessageUtilsTest {
         }
 
         @Test
-        void shouldReturnValidFingerprintWhenMessageIsNull() throws JsonProcessingException {
+        void shouldReturnValidFingerprintWhenMessageIsNull() {
             //Arrange
 
             //Act
@@ -78,7 +77,7 @@ public class VirgilMessageUtilsTest {
         }
 
         @Test
-        void shouldHandleNonSerializedItemInHeader() throws JsonProcessingException {
+        void shouldHandleNonSerializedItemInHeader() {
             //Arrange
             final byte[] body = "".getBytes();
             final MessageProperties messageProperties = new MessageProperties();
@@ -93,7 +92,40 @@ public class VirgilMessageUtilsTest {
             final String result = virgilMessageUtils.generateFingerprint(msg);
 
             //Assert
-            assertThat(result).isEqualTo("3154ebc077ff7b725955b065f71732f3");
+            assertThat(result).isEqualTo("c79fc54eb5a4060d41184c804e0fc84e");
         }
+
+        @Test
+        void shouldNotSerializeDeliveryTagAsPartOfFingerprint() {
+            //Arrange
+            final byte[] body = "{ \"uniqueId\": 55 }".getBytes();
+
+            final LongString item = LongStringHelper.asLongString("");
+
+
+            final MessageProperties messageProperties1 = new MessageProperties();
+            messageProperties1.setDeliveryTag(7L);
+            messageProperties1.setHeader("trackingCode", "AF190B");
+            messageProperties1.setHeader("item", item);
+
+
+            final MessageProperties messageProperties2 = new MessageProperties();
+            messageProperties2.setDeliveryTag(55L);
+            messageProperties2.setHeader("trackingCode", "AF190B");
+            messageProperties2.setHeader("item", item);
+
+            final Message msg1 = new Message(body, messageProperties1);
+            final Message msg2 = new Message(body, messageProperties2);
+
+            //Act
+            final String result1 = virgilMessageUtils.generateFingerprint(msg1);
+            final String result2 = virgilMessageUtils.generateFingerprint(msg2);
+
+            //Assert
+            assertThat(result1).isEqualTo("6fb4d910a8c82397e1892a142ab5ffb1");
+            assertThat(result2).isEqualTo("6fb4d910a8c82397e1892a142ab5ffb1");
+            assertThat(result1).isEqualTo(result2);
+        }
+
     }
 }
