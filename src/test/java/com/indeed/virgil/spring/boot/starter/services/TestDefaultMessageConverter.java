@@ -1,6 +1,5 @@
 package com.indeed.virgil.spring.boot.starter.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
 import com.indeed.virgil.spring.boot.starter.util.VirgilMessageUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,12 +18,11 @@ public class TestDefaultMessageConverter {
     private static final String MESSAGE_HEADER_ORIGINAL_ROUTING_KEY = "x-original-routingKey";
     private static final String MESSAGE_HEADER_ORIGINAL_EXCHANGE = "x-original-exchange";
 
-    private VirgilMessageUtils virgilMessageUtils;
     private DefaultMessageConverter defaultMessageConverter;
 
     @BeforeEach
     void setup() {
-        virgilMessageUtils = new VirgilMessageUtils();
+        final VirgilMessageUtils virgilMessageUtils = new VirgilMessageUtils();
         defaultMessageConverter = new DefaultMessageConverter(virgilMessageUtils);
     }
 
@@ -128,7 +126,7 @@ public class TestDefaultMessageConverter {
     }
 
     @Test
-    void shouldSetFingerPrint() throws JsonProcessingException {
+    void shouldSetFingerPrint() {
         //Arrange
         final String messageBody = "hello world, this is a message body 1...hello world, this is a message body 2...hello world, this is a message body 3...hello world, this is a message body 4...hello world, this is a message body 5...hello world, this is a message body 6...hello world, this is a message body 7...hello world, this is a message body 8...";
         final byte[] bodyBytes = messageBody.getBytes();
@@ -144,7 +142,7 @@ public class TestDefaultMessageConverter {
         final VirgilMessage result = defaultMessageConverter.convertMessage(msg);
 
         //Assert
-        assertThat(result.getFingerprint()).isEqualTo("dcefe73ee0ce7ac11639160c6175e9c9");
+        assertThat(result.getFingerprint()).isEqualTo("2f488d0165039ce1064e63187bb1dde5");
     }
 
     @Test
@@ -184,6 +182,6 @@ public class TestDefaultMessageConverter {
         final VirgilMessage result = defaultMessageConverter.convertMessage(msg);
 
         //Assert
-        assertThat(result.getId()).isEqualTo(String.format("f_%s", "4838233e7a60c6e03659e4e201f0c89e"));
+        assertThat(result.getId()).isEqualTo(String.format("f_%s", "e5ee994969c74b1723f366ca45ba2389"));
     }
 }
