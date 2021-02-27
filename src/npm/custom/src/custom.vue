@@ -27,31 +27,31 @@
             <table class="table is-fullwidth">
               <tr>
                 <th>Actions</th>
-                <th>Message Fingerprint</th>
+                <th>MessageId</th>
                 <th>Headers</th>
                 <th>Body</th>
               </tr>
               <tr
                 v-for="message in dlqMessages"
-                :key="message.fingerprint"
+                :key="message.id"
               >
                 <td>
                   <Button
                     class="button"
-                    @click="onDropMessage(message.fingerprint)"
+                    @click="onDropMessage(message.id)"
                   >
                     Drop
                   </Button>
                   &nbsp;
                   <Button
                     class="button"
-                    @click="onRepublishMessage(message.fingerprint)"
+                    @click="onRepublishMessage(message.id)"
                   >
                     Republish
                   </Button>
                 </td>
                 <td>
-                  {{ message.fingerprint }}
+                  {{ message.id }}
                 </td>
                 <td>
                   <ul>
@@ -95,15 +95,15 @@
         },
         methods: {
             // eslint-disable-next-line
-            async onDropMessage(fingerprint) {
+            async onDropMessage(messageId) {
                 // eslint-disable-next-line
                 console.log('on drop message');
 
                 // eslint-disable-next-line
-                console.log(`fingerprint: ${fingerprint}`);
+                console.log(`messageId: ${messageId}`);
 
                 await EndpointService.post(this.instance, 'drop-message', {
-                    fingerprint: fingerprint
+                    messageId: messageId
                 });
 
                 await this.getQueueSize();
@@ -111,12 +111,12 @@
                 // eslint-disable-next-line
                 console.log('on drop message - success');
             },
-            async onRepublishMessage(fingerprint) {
+            async onRepublishMessage(messageId) {
                 // eslint-disable-next-line
                 console.log('on republish message');
 
                 await EndpointService.post(this.instance, 'publish-message', {
-                    fingerprint: fingerprint
+                    messageId: messageId
                 });
 
                 await this.getQueueSize();
