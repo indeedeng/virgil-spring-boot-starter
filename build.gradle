@@ -45,6 +45,10 @@ test {
 
 ext['indeed.publish.name'] = 'virgil-spring-boot-starter'
 
+compileJava {
+    options.compilerArgs << '-parameters'
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

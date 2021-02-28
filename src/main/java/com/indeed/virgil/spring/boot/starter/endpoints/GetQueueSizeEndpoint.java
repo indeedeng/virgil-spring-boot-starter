@@ -30,7 +30,7 @@ class GetQueueSizeEndpoint implements IVirgilEndpoint {
     }
 
     @ReadOperation
-    public EndpointResponse<Serializable> index(@Selector String queueName) {
+    public EndpointResponse<Serializable> index(@Selector final String queueName) {
         return ImmutableEndpointResponse.builder()
             .setData(messageOperator.getQueueSize(queueName))
             .build();
