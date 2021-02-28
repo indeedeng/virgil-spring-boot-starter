@@ -34,8 +34,8 @@ public class DropMessageEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index(final String queueName, final String messageId) {
-        final AckCertainMessageResponse response = messageOperator.ackCertainMessage(queueName, messageId);
+    public EndpointResponse<Serializable> index(final String queueId, final String messageId) {
+        final AckCertainMessageResponse response = messageOperator.ackCertainMessage(queueId, messageId);
 
         return ImmutableEndpointResponse.builder()
             .setData(response.isSuccess() ? "Success!" : "Failure")
