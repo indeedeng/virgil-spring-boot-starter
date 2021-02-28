@@ -578,7 +578,7 @@ public class TestVirgilPropertyConfig {
             final List<String> result = virgilPropertyConfig.getQueueNames();
 
             //Assert
-            assertThat(result).containsExactly("primary", "secondary");
+            assertThat(result).contains("primary", "secondary");
         }
     }
 }
