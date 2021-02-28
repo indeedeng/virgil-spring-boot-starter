@@ -96,8 +96,8 @@
                 type: Array,
                 default: () => []
             },
-            currentQueue: {
-                type: Array,
+            currentQueueId: {
+                type: String,
                 default: () => ''
             }
         },
@@ -111,7 +111,7 @@
                 console.log(`messageId: ${messageId}`);
 
                 await EndpointService.post(this.instance, 'drop-message', {
-                    queueId: this.currentQueue,
+                    queueId: this.currentQueueId,
                     messageId: messageId
                 });
 
@@ -125,7 +125,7 @@
                 console.log('on republish message');
 
                 await EndpointService.post(this.instance, 'publish-message', {
-                    queueId: this.currentQueue,
+                    queueId: this.currentQueueId,
                     messageId: messageId
                 });
 
@@ -139,7 +139,7 @@
                 console.log('get all messages');
 
                 const response = await EndpointService.get(this.instance, 'get-dlq-messages', {
-                  queueId: this.currentQueue,
+                  queueId: this.currentQueueId,
                   limit: 200
                 });
 
@@ -155,7 +155,7 @@
                 console.log('drop all messages');
 
                 await EndpointService.post(this.instance, 'drop-all-messages', {
-                  queueId: this.currentQueue,
+                  queueId: this.currentQueueId,
                 });
 
                 await this.getQueueSize();
@@ -164,7 +164,7 @@
                 console.log('drop all messages - success');
             },
             async getQueueSize() {
-                const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueue);
+                const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueueId);
                 this.queueSize = queueSizeResponse.data;
             },
         },
@@ -172,16 +172,16 @@
             queueSize: -1,
             dlqMessages: [],
             availableQueues: [],
-            currentQueue: ''
+            currentQueueId: ''
         }),
         async mounted() {
             const getQueuesResponse = await EndpointService.get(this.instance, 'get-queues');
             this.availableQueues = getQueuesResponse.data;
 
             //setting first queue
-            this.currentQueue = this.availableQueues[0];
+            this.currentQueueId = this.availableQueues[0];
 
-            const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueue);
+            const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueueId);
             this.queueSize = queueSizeResponse.data;
         }
     };

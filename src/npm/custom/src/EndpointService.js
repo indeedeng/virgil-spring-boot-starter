@@ -18,17 +18,14 @@ export const getEndpointUrl = (instance, endpointId) => {
  *
  * @param {{axios: Object, endpoints: Array}} instance
  * @param endpointId
- * @param queueId
  * @param [queryParams={}]
  * @returns {Promise<{data: *, errors: [{message: string, code: string}]}>}
  */
-export const get = async (instance, endpointId, queueId = '', queryParams = {}) => {
+export const get = async (instance, endpointId, queryParams = {}) => {
 
     const getUrl = getEndpointUrl(instance, endpointId);
 
-    const completeUrl = queueId ? `${getUrl}/${queueId}` : getUrl;
-
-    const axiosResponse = await instance.axios.get(completeUrl, {
+    const axiosResponse = await instance.axios.get(getUrl, {
         params: queryParams
     });
 
@@ -64,7 +61,7 @@ export const post = async (instance, endpointId, payload = {}, queryParams = {})
 /**
  *
  * @param {{axios: Object, endpoints: Array}} instance
- * @param queueId
+ * @param {string} queueId
  * @returns {Promise<{data: *, errors: [{message: string, code: string}]}>}
  */
 export const getQueueSize = async (instance, queueId) => {
