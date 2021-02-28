@@ -1,10 +1,9 @@
 <template>
   <section class="section">
     <div class="details-header">
-      Select DLQ:
       <div class="field is-horizontal">
         <div class="field-label">
-          <label class="label">method</label>
+          <label class="label">Select DLQ:</label>
         </div>
         <div class="field-body">
           <div class="control">
@@ -21,7 +20,7 @@
     <div class="box">
       <h3 class="title">{{ currentQueueId }}</h3>
       <div>Queue Size: {{ queueSize }}</div>
-      <div v-if="queueSize > 200">Only showing top 200</div>
+      <div v-if="queueSize > 200">Showing top 200 messages</div>
       <button
         class="button"
         @click="onGetAllDLQMessages"
@@ -194,15 +193,26 @@
             availableQueues: [],
             currentQueueId: ''
         }),
+        watch: {
+            currentQueueId: async function(newCurrentQueueId, oldCurrentQueueId) {
+                if(newCurrentQueueId === oldCurrentQueueId) {
+                    return;
+                }
+
+                //clear dlqMessages
+                this.dlqMessages = [];
+
+                //get queue size
+                const queueSizeResponse = await EndpointService.getQueueSize(this.instance, newCurrentQueueId);
+                this.queueSize = queueSizeResponse.data;
+            }
+        },
         async mounted() {
             const getQueuesResponse = await EndpointService.get(this.instance, 'get-queues');
             this.availableQueues = getQueuesResponse.data;
 
             //setting first queue
             this.currentQueueId = this.availableQueues[0];
-
-            const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueueId);
-            this.queueSize = queueSizeResponse.data;
         }
     };
 </script>
