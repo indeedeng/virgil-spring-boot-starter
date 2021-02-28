@@ -14,6 +14,9 @@ import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -144,7 +147,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
             //Assert
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
-            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-dlq-messages");
+            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-dlq-messages-queueName");
 
             assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID);
         }
@@ -154,7 +157,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
             //Assert
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
-            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queue-size");
+            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queue-size-queueName");
 
             assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID);
         }
@@ -185,6 +188,14 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
         when(mockConfigurableEnvironment.getPropertySources()).thenReturn(mockPropertySources);
 
+        final List<String> expectedItems = Arrays.asList(
+            "drop-all-messages",
+            "get-dlq-messages-queueName",
+            "get-queue-size-queueName",
+            "publish-message",
+            "get-queues",
+            "drop-message"
+        );
 
         //Act
         instance.postProcessEnvironment(mockConfigurableEnvironment, mockSpringApplication);
@@ -193,7 +204,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
         final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.exposure.include");
 
-        assertThat(mappingPropertyValue).isEqualTo("drop-all-messages,get-dlq-messages,publish-message,get-queues,drop-message,get-queue-size");
+        assertThat(mappingPropertyValue).isEqualTo(String.join(",", expectedItems));
     }
 
     @Test
@@ -210,6 +221,14 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
         when(mockConfigurableEnvironment.getPropertySources()).thenReturn(mockPropertySources);
 
+        final List<String> expectedItems = Arrays.asList(
+            "drop-message:virgil/drop-message",
+            "publish-message:virgil/publish-message",
+            "drop-all-messages:virgil/drop-all-messages",
+            "get-queue-size-queueName:virgil/get-queue-size-queueName",
+            "get-dlq-messages-queueName:virgil/get-dlq-messages-queueName",
+            "get-queues:virgil/get-queues"
+        );
 
         //Act
         instance.postProcessEnvironment(mockConfigurableEnvironment, mockSpringApplication);
@@ -218,7 +237,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
         final String mappingPropertyValue = (String) result.getProperty("spring.boot.admin.probed-endpoints");
 
-        assertThat(mappingPropertyValue).isEqualTo("drop-message:virgil/drop-message,get-queue-size:virgil/get-queue-size,publish-message:virgil/publish-message,drop-all-messages:virgil/drop-all-messages,get-dlq-messages:virgil/get-dlq-messages,get-queues:virgil/get-queues");
+        assertThat(mappingPropertyValue).isEqualTo(String.join(",", expectedItems));
     }
 
     @Test
