@@ -1,21 +1,41 @@
 <template>
   <section class="section">
     <div class="details-header">
-      <div>Queue Size: {{ queueSize }}</div>
+      Select DLQ:
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label class="label">method</label>
+        </div>
+        <div class="field-body">
+          <div class="control">
+            <div class="select">
+              <select v-model="currentQueueId">
+                <option v-for="queueId in availableQueues" v-text="queueId" :key="queueId" />
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <button
-      class="button"
-      @click="onGetAllDLQMessages"
-    >
-      Get Items
-    </button>
-    &nbsp;
-    <button
-      class="button"
-      @click="onDropAllDLQMessages"
-    >
-      Drop All Items
-    </button>
+    <hr>
+    <div class="box">
+      <h3 class="title">{{ currentQueueId }}</h3>
+      <div>Queue Size: {{ queueSize }}</div>
+      <div v-if="queueSize > 200">Only showing top 200</div>
+      <button
+        class="button"
+        @click="onGetAllDLQMessages"
+      >
+        Get Items
+      </button>
+      &nbsp;
+      <button
+        class="button"
+        @click="onDropAllDLQMessages"
+      >
+        Drop All Items
+      </button>
+    </div>
     <hr>
     <div class="columns">
       <div class="column is-desktop">
