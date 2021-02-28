@@ -40,6 +40,7 @@ gradle buildFrontEndProd
             * readBinderName
             * [Optional] republishName
             * [Optional] republishBinderName
+            * [Optional] republishBindingRoutingKey
     * binders
         * \<binderName\>
             * name
@@ -51,6 +52,28 @@ gradle buildFrontEndProd
                 * username
                 * password
                 * [Optional] virtual-host
+
+Example with Single DLQ:
+```yaml
+virgil:
+  queues:
+    primary:
+  binders:
+    uniqueBinderKey:
+
+```
+
+Example with Many DLQs:
+```yaml
+virgil:
+  queues:
+    primary:
+    secondary:
+  binders:
+    uniqueBinderKey:
+    secondaryBinderKey:
+```
+
 
 #### Configuration Details
 * `binders.<binderName>.rabbitSetings`: if `addresses` is provided it will be used as priority over `host` and `port`.
