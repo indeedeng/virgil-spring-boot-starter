@@ -42,9 +42,6 @@ describe('EndpointService', () => {
       instance.endpoints = [
         {
           id: 'get-queues', url: 'https://something/get-queues'
-        },
-        {
-          id: 'get-queue-size', url: 'https://something/get-queue-size'
         }
       ];
     });
