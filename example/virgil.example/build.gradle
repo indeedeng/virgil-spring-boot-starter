@@ -20,6 +20,11 @@ ext {
 	set('springBootAdminVersion', "2.3.1")
 }
 
+configurations.all {
+	resolutionStrategy.cacheDynamicVersionsFor 5, 'minutes'
+	resolutionStrategy.cacheChangingModulesFor 5, 'minutes'
+}
+
 dependencies {
 	implementation 'com.github.indeedeng:virgil-spring-boot-starter:i27-SNAPSHOT'
 
