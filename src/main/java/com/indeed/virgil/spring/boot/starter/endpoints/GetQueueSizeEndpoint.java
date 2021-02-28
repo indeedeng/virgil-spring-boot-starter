@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
+import org.springframework.boot.actuate.endpoint.annotation.Selector;
 import org.springframework.stereotype.Component;
 
 import java.io.Serializable;
@@ -29,7 +30,7 @@ class GetQueueSizeEndpoint implements IVirgilEndpoint {
     }
 
     @ReadOperation
-    public EndpointResponse<Serializable> index(final String queueName) {
+    public EndpointResponse<Serializable> index(@Selector final String queueName) {
         return ImmutableEndpointResponse.builder()
             .setData(messageOperator.getQueueSize(queueName))
             .build();

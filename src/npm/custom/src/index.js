@@ -31,7 +31,7 @@ SBA.use({
       label: 'Virgil', // Display name of the tab
       order: 1000,
       isEnabled: ({instance}) => {
-        return instance.hasEndpoint('get-queue-size');
+        return instance.hasEndpoint('get-queues');
       }
     });
   }

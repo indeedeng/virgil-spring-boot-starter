@@ -18,14 +18,17 @@ export const getEndpointUrl = (instance, endpointId) => {
  *
  * @param {{axios: Object, endpoints: Array}} instance
  * @param endpointId
+ * @param queueId
  * @param [queryParams={}]
  * @returns {Promise<{data: *, errors: [{message: string, code: string}]}>}
  */
-export const get = async (instance, endpointId, queryParams = {}) => {
+export const get = async (instance, endpointId, queueId, queryParams = {}) => {
 
     const getUrl = getEndpointUrl(instance, endpointId);
 
-    const axiosResponse = await instance.axios.get(getUrl, {
+    const completeUrl = queueId ? `${getUrl}/${queueId}` : getUrl;
+
+    const axiosResponse = await instance.axios.get(completeUrl, {
         params: queryParams
     });
 
