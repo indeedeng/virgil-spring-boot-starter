@@ -164,7 +164,7 @@
                 console.log('drop all messages - success');
             },
             async getQueueSize() {
-                const queueSizeResponse = await EndpointService.get(this.instance, 'get-queue-size', this.currentQueue);
+                const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueue);
                 this.queueSize = queueSizeResponse.data;
             },
         },
@@ -175,13 +175,13 @@
             currentQueue: ''
         }),
         async mounted() {
-            const getQueuesResponse = await EndpointService.get(this.instance, 'get-queues', '');
+            const getQueuesResponse = await EndpointService.get(this.instance, 'get-queues');
             this.availableQueues = getQueuesResponse.data;
 
             //setting first queue
             this.currentQueue = this.availableQueues[0];
 
-            const queueSizeResponse = await EndpointService.get(this.instance, 'get-queue-size', this.currentQueue);
+            const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueue);
             this.queueSize = queueSizeResponse.data;
         }
     };
