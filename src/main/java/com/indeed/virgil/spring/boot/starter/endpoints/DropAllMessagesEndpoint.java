@@ -32,10 +32,10 @@ public class DropAllMessagesEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index() {
+    public EndpointResponse<Serializable> index(final String queueName) {
 
         return ImmutableEndpointResponse.builder()
-            .setData(messageOperator.dropMessages() ? "Success!" : "Failure")
+            .setData(messageOperator.dropMessages(queueName) ? "Success!" : "Failure")
             .build();
     }
 

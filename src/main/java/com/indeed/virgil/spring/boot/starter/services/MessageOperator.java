@@ -43,29 +43,41 @@ public class MessageOperator {
     public MessageOperator(
         final VirgilPropertyConfig virgilPropertyConfig,
         final RabbitMqConnectionService rabbitMqConnectionService,
-        final MessageConverterService messageConverterService) {
+        final MessageConverterService messageConverterService
+    ) {
         this.virgilPropertyConfig = virgilPropertyConfig;
         this.rabbitMqConnectionService = rabbitMqConnectionService;
         this.messageConverterService = messageConverterService;
     }
 
+    /**
+     * @param queueId
+     * @return
+     */
     @Nullable
-    public Integer getQueueSize() {
+    public Integer getQueueSize(final String queueId) {
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueId);
+        if(queueProperties == null) {
+            LOG.error("QueueProperties is null. QueueId: {}", queueId);
+            return null;
+        }
 
-        final Properties properties = getReadAmqpAdmin().getQueueProperties(getReadQueueName());
+        final AmqpAdmin amqpAdmin = rabbitMqConnectionService.getReadAmqpAdmin(queueId);
+
+        final Properties properties = amqpAdmin.getQueueProperties(queueProperties.getReadName());
 
         if (properties == null) {
-            LOG.error("Amqp queue properties is null for queue name: {}", getReadQueueName());
+            LOG.error("Amqp queue properties is null for queueId: {}", queueId);
             return null;
         }
 
         final Object queueMessageCount = properties.get(RabbitAdmin.QUEUE_MESSAGE_COUNT);
 
         Integer queueSize;
-        if(queueMessageCount instanceof String) {
-            queueSize = Integer.valueOf((String)queueMessageCount);
+        if (queueMessageCount instanceof String) {
+            queueSize = Integer.valueOf((String) queueMessageCount);
         } else {
-            queueSize = (Integer)queueMessageCount;
+            queueSize = (Integer) queueMessageCount;
         }
 
         return queueSize;
@@ -74,13 +86,20 @@ public class MessageOperator {
     /**
      * Retrieves messages from the DLQ up to the limit passed in
      *
+     * @param queueId
      * @param limit
      * @return
      */
-    public List<VirgilMessage> getMessages(@Nullable final Integer limit) {
-        final Integer queueSize = getQueueSize();
+    public List<VirgilMessage> getMessages(final String queueId, @Nullable final Integer limit) {
+        final Integer queueSize = getQueueSize(queueId);
         if (queueSize == null) {
             LOG.error("Queue size is null.");
+            return Collections.emptyList();
+        }
+
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueId);
+        if(queueProperties == null) {
+            LOG.error("QueueProperties is null. Returning Empty List. QueueId: {}", queueId);
             return Collections.emptyList();
         }
 
@@ -89,9 +108,9 @@ public class MessageOperator {
                 .filter(value -> value > 0)
                 .orElse(queueSize);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(this, messagePropertiesConverter, messageConverterService, numToRetrieve);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messagePropertiesConverter, messageConverterService, queueProperties, numToRetrieve);
             for (int i = 0; i < numToRetrieve; i++) {
-                getReadRabbitTemplate().execute(handleGetMessages);
+                rabbitMqConnectionService.getReadRabbitTemplate(queueId).execute(handleGetMessages);
             }
 
             return handleGetMessages.getDlqMessages();
@@ -101,26 +120,35 @@ public class MessageOperator {
 
             // Close connection so 'Unacked' messages could be put back to 'Ready' state
             // Connection will be automatically reestablished on next Actuator endpoint invocation
-            destroyReadConnection();
+            rabbitMqConnectionService.destroyReadConnection(queueId);
         }
     }
 
     /**
      * Drop all messages in the queue.
      *
+     * @param queueId
      * @return
      */
-    public boolean dropMessages() {
+    public boolean dropMessages(final String queueId) {
 
-        final Integer queueSize = getQueueSize();
+        final Integer queueSize = getQueueSize(queueId);
         if (queueSize == null) {
             LOG.error("Queue size is null.");
             return false;
         }
 
-        final HandleDropMessages handleDropMessages = new HandleDropMessages(this);
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueId);
+        if(queueProperties == null) {
+            LOG.error("QueueProperties is null. QueueId: {}", queueId);
+            return false;
+        }
 
-        getReadRabbitTemplate().execute(handleDropMessages);
+        final HandleDropMessages handleDropMessages = new HandleDropMessages(queueProperties.getReadName());
+
+        final RabbitTemplate rabbitTemplate = rabbitMqConnectionService.getReadRabbitTemplate(queueId);
+
+        rabbitTemplate.execute(handleDropMessages);
 
         return true;
     }
@@ -131,18 +159,26 @@ public class MessageOperator {
      * @param messageId
      * @return
      */
-    public AckCertainMessageResponse ackCertainMessage(final String messageId) {
+    public AckCertainMessageResponse ackCertainMessage(final String queueId, final String messageId) {
 
         if (StringUtils.isEmpty(messageId)) {
-            LOG.error("messageId is null or empty.");
+            LOG.error("messageId is null or empty. QueueId: {}", queueId);
             return ImmutableAckCertainMessageResponse.builder()
                 .setSuccess(false)
                 .build();
         }
 
-        final Integer queueSize = getQueueSize();
+        final Integer queueSize = getQueueSize(queueId);
         if (queueSize == null) {
-            LOG.error("Queue size is null.");
+            LOG.error("Queue size is null. QueueId: {}", queueId);
+            return ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(false)
+                .build();
+        }
+
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueId);
+        if(queueProperties == null) {
+            LOG.error("QueueProperties is null. QueueId: {}", queueId);
             return ImmutableAckCertainMessageResponse.builder()
                 .setSuccess(false)
                 .build();
@@ -150,12 +186,13 @@ public class MessageOperator {
 
         try {
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(this, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messagePropertiesConverter, messageConverterService, queueProperties, messageId);
+            final RabbitTemplate rabbitTemplate = rabbitMqConnectionService.getReadRabbitTemplate(queueId);
             for (int i = 0; i < queueSize; i++) {
-                getReadRabbitTemplate().execute(handleAckCertainMessage);
+                rabbitTemplate.execute(handleAckCertainMessage);
 
                 //break out of loop if we have ack'd the message
-                if(handleAckCertainMessage.hasMessageBeenAckd()) {
+                if (handleAckCertainMessage.hasMessageBeenAckd()) {
                     break;
                 }
             }
@@ -173,11 +210,11 @@ public class MessageOperator {
 
             // Close connection so 'Unacked' messages could be put back to 'Ready' state
             // Connection will be automatically reestablished on next Actuator endpoint invocation
-            destroyReadConnection();
+            rabbitMqConnectionService.destroyReadConnection(queueId);
         }
     }
 
-    public RepublishMessageResponse republishMessage(final String messageId) {
+    public RepublishMessageResponse republishMessage(final String queueId, final String messageId) {
 
         if (StringUtils.isEmpty(messageId)) {
             LOG.warn("messageId is null or empty.");
@@ -186,7 +223,7 @@ public class MessageOperator {
                 .build();
         }
 
-        final Integer queueSize = getQueueSize();
+        final Integer queueSize = getQueueSize(queueId);
         if (queueSize == null) {
             LOG.warn("Queue size is null.");
             return ImmutableRepublishMessageResponse.builder()
@@ -195,11 +232,12 @@ public class MessageOperator {
         }
 
         try {
+            final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueId);
 
-
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(this, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, queueProperties, queueId, messageId);
+            final RabbitTemplate rabbitTemplate = rabbitMqConnectionService.getReadRabbitTemplate(queueId);
             for (int i = 0; i < queueSize; i++) {
-                getReadRabbitTemplate().execute(handleRepublishMessage);
+                rabbitTemplate.execute(handleRepublishMessage);
             }
 
             return ImmutableRepublishMessageResponse.builder()
@@ -210,34 +248,40 @@ public class MessageOperator {
 
             // Close connection so 'Unacked' messages could be put back to 'Ready' state
             // Connection will be automatically reestablished on next Actuator endpoint invocation
-            destroyReadConnection();
+            rabbitMqConnectionService.destroyReadConnection(queueId);
         }
     }
 
     protected static class HandleRepublishMessage implements ChannelCallback<Void> {
 
-        private final MessageOperator messageOperator;
+        private final RabbitMqConnectionService rabbitMqConnectionService;
         private final MessagePropertiesConverter messagePropertiesConverter;
         private final MessageConverterService messageConverterService;
+        private final QueueProperties queueProperties;
+        private final String queueName;
         private final String messageId;
 
         private boolean messageRepublished;
 
         public HandleRepublishMessage(
-            final MessageOperator messageOperator,
+            final RabbitMqConnectionService rabbitMqConnectionService,
             final MessagePropertiesConverter messagePropertiesConverter,
             final MessageConverterService messageConverterService,
+            final QueueProperties queueProperties,
+            final String queueName,
             final String messageId
         ) {
-            this.messageOperator = messageOperator;
+            this.rabbitMqConnectionService = rabbitMqConnectionService;
             this.messagePropertiesConverter = messagePropertiesConverter;
             this.messageConverterService = messageConverterService;
+            this.queueProperties = queueProperties;
+            this.queueName = queueName;
             this.messageId = messageId;
         }
 
         @Override
         public Void doInRabbit(final Channel channel) throws Exception {
-            final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
+            final GetResponse response = channel.basicGet(queueProperties.getReadName(), false);
             if (response == null) {
                 return null;
             }
@@ -250,7 +294,9 @@ public class MessageOperator {
             if (messageId.equals(virgilMessage.getId())) {
                 channel.basicAck(response.getEnvelope().getDeliveryTag(), false);
 
-                messageOperator.getReadRabbitTemplate().convertAndSend(messageOperator.getReadExchangeName(), messageOperator.getReadBindingKey(), message);
+                final RabbitTemplate rabbitTemplate = rabbitMqConnectionService.getReadRabbitTemplate(queueName);
+
+                rabbitTemplate.convertAndSend(queueProperties.getReadBinderProperties().getName(), queueProperties.getRepublishBindingRoutingKey(), message);
                 messageRepublished = true;
             }
             return null;
@@ -268,9 +314,9 @@ public class MessageOperator {
 
     protected static class HandleAckCertainMessage implements ChannelCallback<String> {
 
-        private final MessageOperator messageOperator;
         private final MessagePropertiesConverter messagePropertiesConverter;
         private final MessageConverterService messageConverterService;
+        private final QueueProperties queueProperties;
         private final String messageId;
 
         @Nullable
@@ -278,20 +324,20 @@ public class MessageOperator {
         private boolean messageFound = false;
 
         public HandleAckCertainMessage(
-            final MessageOperator messageOperator,
             final MessagePropertiesConverter messagePropertiesConverter,
             final MessageConverterService messageConverterService,
+            final QueueProperties queueProperties,
             final String messageId
         ) {
-            this.messageOperator = messageOperator;
             this.messagePropertiesConverter = messagePropertiesConverter;
             this.messageConverterService = messageConverterService;
+            this.queueProperties = queueProperties;
             this.messageId = messageId;
         }
 
         @Override
         public String doInRabbit(final Channel channel) throws Exception {
-            final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
+            final GetResponse response = channel.basicGet(queueProperties.getReadName(), false);
             if (response == null) {
                 return null;
             }
@@ -331,41 +377,44 @@ public class MessageOperator {
 
     protected static class HandleDropMessages implements ChannelCallback<Void> {
 
-        private final MessageOperator messageOperator;
+        private final String queueName;
 
+        /**
+         *
+         * @param queueName Name of the queue that will be purged
+         */
         public HandleDropMessages(
-            final MessageOperator messageOperator
+            final String queueName
         ) {
-            this.messageOperator = messageOperator;
+            this.queueName = queueName;
         }
 
         @Override
         public Void doInRabbit(final Channel channel) throws Exception {
-            LOG.info("Purging the queue");
-            channel.queuePurge(messageOperator.getReadQueueName());
-
+            LOG.info("Purging the queue. Queue: {}", queueName);
+            channel.queuePurge(queueName);
             return null;
         }
     }
 
     protected static class HandleGetMessages implements ChannelCallback<Void> {
 
-        private final MessageOperator messageOperator;
         private final MessagePropertiesConverter messagePropertiesConverter;
         private final MessageConverterService messageConverterService;
+        private final QueueProperties queueProperties;
 
         private final List<VirgilMessage> dlqMessages;
         private final Map<String, Message> messageLookup;
 
         public HandleGetMessages(
-            final MessageOperator messageOperator,
             final MessagePropertiesConverter messagePropertiesConverter,
             final MessageConverterService messageConverterService,
+            final QueueProperties queueProperties,
             final int numToRetrieve
         ) {
-            this.messageOperator = messageOperator;
             this.messagePropertiesConverter = messagePropertiesConverter;
             this.messageConverterService = messageConverterService;
+            this.queueProperties = queueProperties;
 
             this.dlqMessages = new ArrayList<>(numToRetrieve);
             this.messageLookup = new HashMap<>(numToRetrieve);
@@ -373,7 +422,7 @@ public class MessageOperator {
 
         @Override
         public Void doInRabbit(final Channel channel) throws Exception {
-            final GetResponse response = channel.basicGet(messageOperator.getReadQueueName(), false);
+            final GetResponse response = channel.basicGet(queueProperties.getReadName(), false);
             if (response == null) {
                 return null;
             }
@@ -397,32 +446,23 @@ public class MessageOperator {
         }
     }
 
-    private String getReadQueueName() {
-        return virgilPropertyConfig.getDefaultQueue().getReadName();
-    }
-
-    private String getReadExchangeName() {
-
-        return virgilPropertyConfig.getDefaultQueue().getReadBinderProperties().getName();
-    }
-
-    private String getReadBindingKey() {
-        return virgilPropertyConfig.getDefaultQueue().getRepublishBindingRoutingKey();
-    }
-
-    private RabbitTemplate getReadRabbitTemplate() {
-        final QueueProperties queueProperties = virgilPropertyConfig.getDefaultQueue();
-        return rabbitMqConnectionService.getRabbitTemplate(queueProperties.getReadBinderName());
-    }
-
-    private AmqpAdmin getReadAmqpAdmin() {
-        final QueueProperties queueProperties = virgilPropertyConfig.getDefaultQueue();
-        return rabbitMqConnectionService.getAmqpAdmin(queueProperties.getReadBinderName());
-    }
-
-    private void destroyReadConnection() {
-        final QueueProperties queueProperties = virgilPropertyConfig.getDefaultQueue();
-
-        rabbitMqConnectionService.destroyConnectionsByName(queueProperties.getReadBinderName());
-    }
+//    private String getReadBindingKey() {
+//        return virgilPropertyConfig.getDefaultQueue().getRepublishBindingRoutingKey();
+//    }
+//
+//    private RabbitTemplate getReadRabbitTemplate(final String queueName) {
+//        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+//        return rabbitMqConnectionService.getRabbitTemplate(queueProperties.getReadBinderName());
+//    }
+//
+//    private AmqpAdmin getReadAmqpAdmin(final String queueName) {
+//        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+//        return rabbitMqConnectionService.getAmqpAdmin(queueProperties.getReadBinderName());
+//    }
+//
+//    private void destroyReadConnection(final String queueName) {
+//        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+//
+//        rabbitMqConnectionService.destroyConnectionsByName(queueProperties.getReadBinderName());
+//    }
 }

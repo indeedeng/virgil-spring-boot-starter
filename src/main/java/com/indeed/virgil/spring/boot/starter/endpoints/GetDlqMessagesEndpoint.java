@@ -33,9 +33,8 @@ class GetDlqMessagesEndpoint implements IVirgilEndpoint {
     }
 
     @ReadOperation
-    public EndpointResponse<Serializable> index(@Nullable final Integer limit) {
-
-        final ArrayList<VirgilMessage> result = new ArrayList<>(messageOperator.getMessages(limit));
+    public EndpointResponse<Serializable> index(final String queueName, @Nullable final Integer limit) {
+        final ArrayList<VirgilMessage> result = new ArrayList<>(messageOperator.getMessages(queueName, limit));
 
         return ImmutableEndpointResponse.builder()
             .setData(result)

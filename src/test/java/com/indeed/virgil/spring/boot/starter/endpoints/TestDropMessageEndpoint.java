@@ -1,15 +1,24 @@
 package com.indeed.virgil.spring.boot.starter.endpoints;
 
+import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.ImmutableAckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.services.MessageOperator;
 import com.indeed.virgil.spring.boot.starter.util.EndpointConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 public class TestDropMessageEndpoint {
@@ -34,25 +43,69 @@ public class TestDropMessageEndpoint {
         Assertions.assertTrue(IVirgilEndpoint.class.isAssignableFrom(c));
     }
 
-    @Test
-    void testGetEndpointId_shouldReturnExpectedEndpointId() {
-        //Arrange
+    @Nested
+    class index {
 
-        //Act
-        final String result = dropMessageEndpoint.getEndpointId();
+        @Test
+        void shouldPassQueueNameToAckCertainMessage() {
+            //Arrange
+            final String queueName = "primaryQueue";
+            final String messageId = "f_12312321321";
 
-        //Assert
-        Assertions.assertEquals(EndpointConstants.DROP_MESSAGE_ENDPOINT_ID, result);
+            when(messageOperator.ackCertainMessage(any(), any())).thenReturn(ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(false)
+                .build());
+
+            //Act
+            dropMessageEndpoint.index(queueName, messageId);
+
+            //Assert
+            verify(messageOperator, times(1)).ackCertainMessage(eq(queueName), any());
+        }
+
+        @Test
+        void shouldPassMessageIdToAckCertainMessage() {
+            //Arrange
+            final String queueName = "primaryQueue";
+            final String messageId = "f_12312321321";
+
+            when(messageOperator.ackCertainMessage(any(), any())).thenReturn(ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(false)
+                .build());
+
+            //Act
+            dropMessageEndpoint.index(queueName, messageId);
+
+            //Assert
+            verify(messageOperator, times(1)).ackCertainMessage(any(), eq(messageId));
+        }
     }
 
-    @Test
-    void testGetEndpointPath_shouldReturnExpectedEndpointPath() {
-        //Arrange
+    @Nested
+    class GetEndpointId {
+        @Test
+        void shouldReturnExpectedEndpointId() {
+            //Arrange
 
-        //Act
-        final String result = dropMessageEndpoint.getEndpointPath();
+            //Act
+            final String result = DropMessageEndpoint.getEndpointId();
 
-        //Assert
-        Assertions.assertEquals(ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.DROP_MESSAGE_ENDPOINT_ID, result);
+            //Assert
+            assertThat(result).isEqualTo(EndpointConstants.DROP_MESSAGE_ENDPOINT_ID);
+        }
+    }
+
+    @Nested
+    class GetEndpointPath {
+        @Test
+        void shouldReturnExpectedEndpointPath() {
+            //Arrange
+
+            //Act
+            final String result = DropMessageEndpoint.getEndpointPath();
+
+            //Assert
+            assertThat(result).isEqualTo(ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.DROP_MESSAGE_ENDPOINT_ID);
+        }
     }
 }

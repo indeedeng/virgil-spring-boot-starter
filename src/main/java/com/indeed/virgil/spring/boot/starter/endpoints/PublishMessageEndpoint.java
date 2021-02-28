@@ -29,9 +29,8 @@ class PublishMessageEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index(final String messageId) {
-
-        final RepublishMessageResponse response = messageOperator.republishMessage(messageId);
+    public EndpointResponse<Serializable> index(final String queueName, final String messageId) {
+        final RepublishMessageResponse response = messageOperator.republishMessage(queueName, messageId);
 
         return ImmutableEndpointResponse.builder()
             .setData(response.isSuccess() ? "Success!" : "Failure")
