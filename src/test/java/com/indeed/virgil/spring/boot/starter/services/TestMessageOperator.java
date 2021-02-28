@@ -384,6 +384,20 @@ public class TestMessageOperator {
     class republishMessage {
 
         @Test
+        void shouldReturnSuccessIsFalseWhenQueuePropertiesIsNull() {
+            //Arrange
+            when(virgilPropertyConfig.getQueueProperties(any()))
+                .thenReturn(QUEUE_PROPERTIES)
+                .thenReturn(null);
+
+            //Act
+            final RepublishMessageResponse result = messageOperator.republishMessage(QUEUE_ID, null);
+
+            //Assert
+            assertThat(result.isSuccess()).isFalse();
+        }
+
+        @Test
         void shouldReturnSuccessIsTrue() throws IOException {
             //Arrange
             final String rabbitMessageId = "abc123";

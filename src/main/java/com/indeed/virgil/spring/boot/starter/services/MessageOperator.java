@@ -51,7 +51,7 @@ public class MessageOperator {
     }
 
     /**
-     * @param queueId
+     * @param queueId Queue Property Key, this is not the actual name of the queue
      * @return
      */
     @Nullable
@@ -86,7 +86,7 @@ public class MessageOperator {
     /**
      * Retrieves messages from the DLQ up to the limit passed in
      *
-     * @param queueId
+     * @param queueId Queue Property Key, this is not the actual name of the queue
      * @param limit
      * @return
      */
@@ -127,7 +127,7 @@ public class MessageOperator {
     /**
      * Drop all messages in the queue.
      *
-     * @param queueId
+     * @param queueId Queue Property Key, this is not the actual name of the queue
      * @return
      */
     public boolean dropMessages(final String queueId) {
@@ -156,6 +156,7 @@ public class MessageOperator {
     /**
      * Acknowledges a message on the DLQ
      *
+     * @param queueId Queue Property Key, this is not the actual name of the queue
      * @param messageId
      * @return
      */
@@ -214,6 +215,12 @@ public class MessageOperator {
         }
     }
 
+    /**
+     *
+     * @param queueId Queue Property Key, this is not the actual name of the queue
+     * @param messageId
+     * @return
+     */
     public RepublishMessageResponse republishMessage(final String queueId, final String messageId) {
 
         if (StringUtils.isEmpty(messageId)) {
@@ -233,6 +240,12 @@ public class MessageOperator {
 
         try {
             final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueId);
+            if(queueProperties == null) {
+                LOG.error("QueueProperties is null. QueueId: {}", queueId);
+                return ImmutableRepublishMessageResponse.builder()
+                    .setSuccess(false)
+                    .build();
+            }
 
             final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, queueProperties, queueId, messageId);
             final RabbitTemplate rabbitTemplate = rabbitMqConnectionService.getReadRabbitTemplate(queueId);
