@@ -18,7 +18,7 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_Q
 
 @Component
 @Endpoint(id = GET_QUEUE_SIZE_ENDPOINT_ID)
-class GetQueueSizeEndpoint implements IVirgilEndpoint {
+public class GetQueueSizeEndpoint implements IVirgilEndpoint {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetQueueSizeEndpoint.class);
 
@@ -37,7 +37,7 @@ class GetQueueSizeEndpoint implements IVirgilEndpoint {
     }
 
     public static String getEndpointId() {
-        return GET_QUEUE_SIZE_ENDPOINT_ID;
+        return GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName";
     }
 
     public static String getEndpointPath() {

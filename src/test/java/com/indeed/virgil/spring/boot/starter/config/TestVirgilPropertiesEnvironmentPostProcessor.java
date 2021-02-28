@@ -77,7 +77,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final String[][] results = (String[][]) ReflectionTestUtils.getField(instance, "DEFAULT_ENDPOINTS");
 
         //Assert
-        assertEndpointProperties(results, EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID, EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID);
+        assertEndpointProperties(results, EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName", EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName");
     }
 
     @Test
@@ -87,7 +87,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final String[][] results = (String[][]) ReflectionTestUtils.getField(instance, "DEFAULT_ENDPOINTS");
 
         //Assert
-        assertEndpointProperties(results, EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID, EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID);
+        assertEndpointProperties(results, EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName", EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName");
     }
 
     @Nested
@@ -149,7 +149,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-dlq-messages-queueName");
 
-            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName");
         }
 
         @Test
@@ -159,7 +159,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queue-size-queueName");
 
-            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName");
         }
 
         @Test

@@ -21,7 +21,7 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_D
 
 @Component
 @Endpoint(id = GET_DLQ_MESSAGES_ENDPOINT_ID)
-class GetDlqMessagesEndpoint implements IVirgilEndpoint {
+public class GetDlqMessagesEndpoint implements IVirgilEndpoint {
     private static final Logger LOG = LoggerFactory.getLogger(GetDlqMessagesEndpoint.class);
 
     private final MessageOperator messageOperator;
@@ -43,7 +43,7 @@ class GetDlqMessagesEndpoint implements IVirgilEndpoint {
     }
 
     public static String getEndpointId() {
-        return GET_DLQ_MESSAGES_ENDPOINT_ID;
+        return GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName";
     }
 
     public static String getEndpointPath() {

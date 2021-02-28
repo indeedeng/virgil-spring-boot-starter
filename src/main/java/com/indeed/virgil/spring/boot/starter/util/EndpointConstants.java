@@ -4,9 +4,9 @@ public class EndpointConstants {
 
     public static final String PUBLISH_MESSAGE_ENDPOINT_ID = "publish-message";
 
-    public static final String GET_QUEUE_SIZE_ENDPOINT_ID = "get-queue-size-queueName";
+    public static final String GET_QUEUE_SIZE_ENDPOINT_ID = "get-queue-size";
 
-    public static final String GET_DLQ_MESSAGES_ENDPOINT_ID = "get-dlq-messages-queueName";
+    public static final String GET_DLQ_MESSAGES_ENDPOINT_ID = "get-dlq-messages";
 
     public static final String GET_QUEUES_ENDPOINT_ID = "get-queues";
 

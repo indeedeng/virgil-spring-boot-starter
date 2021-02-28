@@ -1,5 +1,7 @@
 package com.indeed.virgil.spring.boot.starter.config;
 
+import com.indeed.virgil.spring.boot.starter.endpoints.GetDlqMessagesEndpoint;
+import com.indeed.virgil.spring.boot.starter.endpoints.GetQueueSizeEndpoint;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
@@ -12,7 +14,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.DROP_ALL_MESSAGES_ENDPOINT_ID;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.DROP_MESSAGE_ENDPOINT_ID;
@@ -40,8 +41,8 @@ class VirgilPropertiesEnvironmentPostProcessor implements EnvironmentPostProcess
 
     // Endpoint id, path mapping, cache TTL
     private static final String[][] DEFAULT_ENDPOINTS = {
-        {GET_QUEUE_SIZE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GET_QUEUE_SIZE_ENDPOINT_ID},
-        {GET_DLQ_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GET_DLQ_MESSAGES_ENDPOINT_ID},
+        {GetQueueSizeEndpoint.getEndpointId(), ENDPOINT_DEFAULT_PATH_MAPPING + GetQueueSizeEndpoint.getEndpointId()},
+        {GetDlqMessagesEndpoint.getEndpointId(), ENDPOINT_DEFAULT_PATH_MAPPING + GetDlqMessagesEndpoint.getEndpointId()},
         {PUBLISH_MESSAGE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + PUBLISH_MESSAGE_ENDPOINT_ID},
         {DROP_MESSAGE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_MESSAGE_ENDPOINT_ID},
         {DROP_ALL_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_ALL_MESSAGES_ENDPOINT_ID},
