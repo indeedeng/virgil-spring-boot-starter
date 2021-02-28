@@ -41,8 +41,8 @@ class VirgilPropertiesEnvironmentPostProcessor implements EnvironmentPostProcess
 
     // Endpoint id, path mapping, cache TTL
     private static final String[][] DEFAULT_ENDPOINTS = {
-        {GetQueueSizeEndpoint.getEndpointId(), ENDPOINT_DEFAULT_PATH_MAPPING + GetQueueSizeEndpoint.getEndpointId()},
-        {GetDlqMessagesEndpoint.getEndpointId(), ENDPOINT_DEFAULT_PATH_MAPPING + GetDlqMessagesEndpoint.getEndpointId()},
+        {GET_QUEUE_SIZE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GetQueueSizeEndpoint.getEndpointId()},
+        {GET_DLQ_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GetDlqMessagesEndpoint.getEndpointId()},
         {PUBLISH_MESSAGE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + PUBLISH_MESSAGE_ENDPOINT_ID},
         {DROP_MESSAGE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_MESSAGE_ENDPOINT_ID},
         {DROP_ALL_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_ALL_MESSAGES_ENDPOINT_ID},

@@ -55,7 +55,7 @@ public class TestGetDlqMessagesEndpoint {
         final String result = getDlqMessagesEndpoint.getEndpointId();
 
         //Assert
-        Assertions.assertEquals(EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName", result);
+        Assertions.assertEquals(EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID, result);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class TestGetDlqMessagesEndpoint {
         final String result = getDlqMessagesEndpoint.getEndpointPath();
 
         //Assert
-        Assertions.assertEquals(ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName", result);
+        Assertions.assertEquals(ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID, result);
     }
 
     @Nested

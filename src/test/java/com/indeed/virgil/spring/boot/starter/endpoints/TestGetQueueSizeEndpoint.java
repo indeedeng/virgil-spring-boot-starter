@@ -42,7 +42,7 @@ public class TestGetQueueSizeEndpoint {
         final String result = getQueueSizeEndpoint.getEndpointId();
 
         //Assert
-        Assertions.assertEquals(EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName", result);
+        Assertions.assertEquals(EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID, result);
     }
 
     @Test
@@ -53,6 +53,6 @@ public class TestGetQueueSizeEndpoint {
         final String result = getQueueSizeEndpoint.getEndpointPath();
 
         //Assert
-        Assertions.assertEquals(ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName", result);
+        Assertions.assertEquals(ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID, result);
     }
 }

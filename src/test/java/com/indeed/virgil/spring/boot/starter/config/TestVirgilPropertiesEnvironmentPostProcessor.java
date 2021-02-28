@@ -77,7 +77,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final String[][] results = (String[][]) ReflectionTestUtils.getField(instance, "DEFAULT_ENDPOINTS");
 
         //Assert
-        assertEndpointProperties(results, EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName", EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName");
+        assertEndpointProperties(results, EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID, EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final String[][] results = (String[][]) ReflectionTestUtils.getField(instance, "DEFAULT_ENDPOINTS");
 
         //Assert
-        assertEndpointProperties(results, EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName", EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName");
+        assertEndpointProperties(results, EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID, EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID);
     }
 
     @Nested
@@ -147,9 +147,9 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
             //Assert
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
-            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-dlq-messages-queueName");
+            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-dlq-messages");
 
-            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName");
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID);
         }
 
         @Test
@@ -157,9 +157,9 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
             //Assert
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
-            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queue-size-queueName");
+            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queue-size");
 
-            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName");
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID);
         }
 
         @Test
@@ -190,11 +190,11 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
         final List<String> expectedItems = Arrays.asList(
             "drop-all-messages",
-            "get-dlq-messages-queueName",
-            "get-queue-size-queueName",
+            "get-dlq-messages",
             "publish-message",
             "get-queues",
-            "drop-message"
+            "drop-message",
+            "get-queue-size"
         );
 
         //Act
@@ -223,10 +223,10 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
         final List<String> expectedItems = Arrays.asList(
             "drop-message:virgil/drop-message",
+            "get-queue-size:virgil/get-queue-size",
             "publish-message:virgil/publish-message",
             "drop-all-messages:virgil/drop-all-messages",
-            "get-queue-size-queueName:virgil/get-queue-size-queueName",
-            "get-dlq-messages-queueName:virgil/get-dlq-messages-queueName",
+            "get-dlq-messages:virgil/get-dlq-messages",
             "get-queues:virgil/get-queues"
         );
 

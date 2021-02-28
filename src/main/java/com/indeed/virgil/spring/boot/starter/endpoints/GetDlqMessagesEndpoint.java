@@ -43,7 +43,7 @@ public class GetDlqMessagesEndpoint implements IVirgilEndpoint {
     }
 
     public static String getEndpointId() {
-        return GET_DLQ_MESSAGES_ENDPOINT_ID + "-queueName";
+        return GET_DLQ_MESSAGES_ENDPOINT_ID;
     }
 
     public static String getEndpointPath() {

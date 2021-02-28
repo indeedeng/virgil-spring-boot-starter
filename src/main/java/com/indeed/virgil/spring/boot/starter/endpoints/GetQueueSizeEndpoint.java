@@ -37,7 +37,7 @@ public class GetQueueSizeEndpoint implements IVirgilEndpoint {
     }
 
     public static String getEndpointId() {
-        return GET_QUEUE_SIZE_ENDPOINT_ID + "-queueName";
+        return GET_QUEUE_SIZE_ENDPOINT_ID;
     }
 
     public static String getEndpointPath() {
