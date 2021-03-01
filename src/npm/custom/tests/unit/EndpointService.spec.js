@@ -1,4 +1,4 @@
-import { get, getQueueSize } from '../../src/EndpointService';
+import { getQueueSize } from '../../src/EndpointService';
 
 describe('EndpointService', () => {
   describe('getQueueSize', () => {

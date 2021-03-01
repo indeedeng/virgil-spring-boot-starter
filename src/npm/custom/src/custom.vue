@@ -9,7 +9,10 @@
           <div class="control">
             <div class="select">
               <select v-model="currentQueueId">
-                <option v-for="queueId in availableQueues" v-text="queueId" :key="queueId" />
+                <option 
+                  v-for="queueId in availableQueues" 
+                  v-text="queueId" 
+                  :key="queueId" />
               </select>
             </div>
           </div>
@@ -150,7 +153,7 @@
                 // eslint-disable-next-line
                 console.log('on republish message');
 
-                await EndpointService.post(this.instance, 'publish-message', {
+                const response = await EndpointService.post(this.instance, 'publish-message', {
                     queueId: this.currentQueueId,
                     messageId: messageId
                 });
