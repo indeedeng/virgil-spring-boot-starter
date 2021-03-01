@@ -57,21 +57,50 @@ Example with Single DLQ:
 ```yaml
 virgil:
   queues:
-    primary:
+    virgilDlq:
+      readName: virgil-dlq
+      readBinderName: virgilExchange
+      republishName: virgil-queue
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: test.#
   binders:
-    uniqueBinderKey:
-
+    virgilExchange:
+      name: virgil-exchange
+      type: rabbit
+      rabbitProperties:
+        host: virgil-rabbit
+        port: 5672
+        username: guest
+        password: guest
+        virtual-host: /
 ```
 
 Example with Many DLQs:
 ```yaml
 virgil:
   queues:
-    primary:
-    secondary:
+    virgilDlq:
+      readName: virgil-dlq
+      readBinderName: virgilExchange
+      republishName: virgil-queue
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: test.#
+    virgilDlq2:
+      readName: virgil-queue
+      readBinderName: virgilExchange
+      republishName: virgil-dlq
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: dlq.#
   binders:
-    uniqueBinderKey:
-    secondaryBinderKey:
+    virgilExchange:
+      name: virgil-exchange
+      type: rabbit
+      rabbitProperties:
+        host: virgil-rabbit
+        port: 5672
+        username: guest
+        password: guest
+        virtual-host: /
 ```
 
 
