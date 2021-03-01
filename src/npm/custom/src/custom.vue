@@ -169,7 +169,7 @@
                   limit: 200
                 });
 
-                this.dlqMessages = response.data;
+                this.$set(this, 'dlqMessages', response.data);
 
                 await this.getQueueSize();
 
@@ -191,7 +191,7 @@
             },
             async getQueueSize() {
                 const queueSizeResponse = await EndpointService.getQueueSize(this.instance, this.currentQueueId);
-                this.queueSize = queueSizeResponse.data;
+                this.$set(this, 'queueSize', queueSizeResponse.data);
             },
         },
         data: () => ({
@@ -207,19 +207,19 @@
                 }
 
                 //clear dlqMessages
-                this.dlqMessages = [];
+                this.$set(this, 'dlqMessages', []);
 
                 //get queue size
                 const queueSizeResponse = await EndpointService.getQueueSize(this.instance, newCurrentQueueId);
-                this.queueSize = queueSizeResponse.data;
+                this.$set(this, 'queueSize', queueSizeResponse.data);
             }
         },
         async mounted() {
             const getQueuesResponse = await EndpointService.get(this.instance, 'get-queues');
-            this.availableQueues = getQueuesResponse.data;
+            this.$set(this, 'availableQueues', getQueuesResponse.data);
 
             //setting first queue
-            this.currentQueueId = this.availableQueues[0];
+            this.$set(this, currentQueueId, this.availableQueues[0]);
         }
     };
 </script>
