@@ -51,20 +51,20 @@
                 <th>Body</th>
               </tr>
               <tr
-                v-for="message in dlqMessages"
+                v-for="(message, index) in dlqMessages"
                 :key="message.id"
               >
                 <td>
                   <Button
                     class="button"
-                    @click="onDropMessage(message.id)"
+                    @click="onDropMessage(message.id, index)"
                   >
                     Drop
                   </Button>
                   &nbsp;
                   <Button
                     class="button"
-                    @click="onRepublishMessage(message.id)"
+                    @click="onRepublishMessage(message.id, index)"
                   >
                     Republish
                   </Button>
@@ -122,24 +122,31 @@
         },
         methods: {
             // eslint-disable-next-line
-            async onDropMessage(messageId) {
+            async onDropMessage(messageId, index) {
                 // eslint-disable-next-line
                 console.log('on drop message');
 
                 // eslint-disable-next-line
                 console.log(`messageId: ${messageId}`);
 
-                await EndpointService.post(this.instance, 'drop-message', {
+                const response = await EndpointService.post(this.instance, 'drop-message', {
                     queueId: this.currentQueueId,
                     messageId: messageId
                 });
 
-                await this.getQueueSize();
+                if(response.data === "success") {
+                    await this.getQueueSize();
+
+                    //remove item from dlqMessages since it has been dropped successfully
+                    if(index >= 0 && index < this.dlqMessages.length) {
+                        delete this.dlqMessages[index];
+                    }
+                }
 
                 // eslint-disable-next-line
                 console.log('on drop message - success');
             },
-            async onRepublishMessage(messageId) {
+            async onRepublishMessage(messageId, index) {
                 // eslint-disable-next-line
                 console.log('on republish message');
 
@@ -148,7 +155,16 @@
                     messageId: messageId
                 });
 
-                await this.getQueueSize();
+                if(response.data === "success") {
+                    await this.getQueueSize();
+
+                    //remove item from dlqMessages since it has been dropped successfully
+                    // this code assume that republish is not putting this message back into the same
+                    // queue that is being displayed
+                    if(index >= 0 && index < this.dlqMessages.length) {
+                        delete this.dlqMessages[index];
+                    }
+                }
 
                 // eslint-disable-next-line
                 console.log('on republish message - success');

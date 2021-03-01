@@ -38,7 +38,7 @@ public class DropMessageEndpoint implements IVirgilEndpoint {
         final AckCertainMessageResponse response = messageOperator.ackCertainMessage(queueId, messageId);
 
         return ImmutableEndpointResponse.builder()
-            .setData(response.isSuccess() ? "Success!" : "Failure")
+            .setData(response.isSuccess() ? "success" : "failure")
             .build();
     }
 
