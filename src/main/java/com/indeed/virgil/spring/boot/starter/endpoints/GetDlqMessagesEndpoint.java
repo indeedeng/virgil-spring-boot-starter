@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.annotation.ReadOperation;
+import org.springframework.boot.actuate.endpoint.annotation.Selector;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +21,7 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_D
 
 @Component
 @Endpoint(id = GET_DLQ_MESSAGES_ENDPOINT_ID)
-class GetDlqMessagesEndpoint implements IVirgilEndpoint {
+public class GetDlqMessagesEndpoint implements IVirgilEndpoint {
     private static final Logger LOG = LoggerFactory.getLogger(GetDlqMessagesEndpoint.class);
 
     private final MessageOperator messageOperator;
@@ -33,9 +34,8 @@ class GetDlqMessagesEndpoint implements IVirgilEndpoint {
     }
 
     @ReadOperation
-    public EndpointResponse<Serializable> index(@Nullable final Integer limit) {
-
-        final ArrayList<VirgilMessage> result = new ArrayList<>(messageOperator.getMessages(limit));
+    public EndpointResponse<Serializable> index(final String queueId, @Nullable final Integer limit) {
+        final ArrayList<VirgilMessage> result = new ArrayList<>(messageOperator.getMessages(queueId, limit));
 
         return ImmutableEndpointResponse.builder()
             .setData(result)

@@ -2,6 +2,7 @@ package com.indeed.virgil.spring.boot.starter.services;
 
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig.BinderProperties;
+import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig.QueueProperties;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.rabbit.connection.AbstractConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
@@ -31,6 +32,52 @@ public class RabbitMqConnectionService {
         this.virgilPropertyConfig = virgilPropertyConfig;
     }
 
+    /**
+     *
+     * @param queueName Queue Property Key, this is not the actual name of the queue
+     * @return
+     */
+    public String getReadBindingKey(final String queueName) {
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+        return queueProperties.getRepublishBindingRoutingKey();
+    }
+
+    /**
+     *
+     * @param queueName Queue Property Key, this is not the actual name of the queue
+     * @return
+     */
+    public RabbitTemplate getReadRabbitTemplate(final String queueName) {
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+        return getRabbitTemplate(queueProperties.getReadBinderName());
+    }
+
+    /**
+     *
+     * @param queueName Queue Property Key, this is not the actual name of the queue
+     * @return
+     */
+    public AmqpAdmin getReadAmqpAdmin(final String queueName) {
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+        return getAmqpAdmin(queueProperties.getReadBinderName());
+    }
+
+    /**
+     *
+     * @param queueName Queue Property Key, this is not the actual name of the queue
+     * @return
+     */
+    public void destroyReadConnection(final String queueName) {
+        final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
+
+        destroyConnectionsByName(queueProperties.getReadBinderName());
+    }
+
+    /**
+     *
+     * @param binderName
+     * @return
+     */
     public AmqpAdmin getAmqpAdmin(final String binderName) {
         AmqpAdmin amqpAdmin = getCachedAmqpAdmin(binderName);
         if (amqpAdmin != null) {

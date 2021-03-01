@@ -18,6 +18,8 @@ import java.util.ArrayList;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -73,24 +75,40 @@ public class TestGetDlqMessagesEndpoint {
         @Test
         void shouldCallGetMessagesWithLimit() {
             //Arrange
+            final String queueName = "primaryQueue";
             final Integer limit = 100;
-            when(messageOperator.getMessages(any())).thenReturn(new ArrayList<>());
+            when(messageOperator.getMessages(any(), anyInt())).thenReturn(new ArrayList<>());
 
             //Act
-            getDlqMessagesEndpoint.index(limit);
+            getDlqMessagesEndpoint.index(queueName, limit);
 
             //Assert
-            verify(messageOperator, times(1)).getMessages(limit);
+            verify(messageOperator, times(1)).getMessages(any(), eq(limit));
+        }
+
+        @Test
+        void shouldCallGetMessagesWithQueueName() {
+            //Arrange
+            final String queueName = "primaryQueue";
+            final Integer limit = 100;
+            when(messageOperator.getMessages(any(), anyInt())).thenReturn(new ArrayList<>());
+
+            //Act
+            getDlqMessagesEndpoint.index(queueName, limit);
+
+            //Assert
+            verify(messageOperator, times(1)).getMessages(eq(queueName), any());
         }
 
         @Test
         void shouldReturnDataFromGetMessages() {
             //Arrange
+            final String queueName = "primaryQueue";
             final Integer limit = 100;
-            when(messageOperator.getMessages(any())).thenReturn(new ArrayList<>());
+            when(messageOperator.getMessages(any(), any())).thenReturn(new ArrayList<>());
 
             //Act
-            final EndpointResponse<Serializable> result = getDlqMessagesEndpoint.index(limit);
+            final EndpointResponse<Serializable> result = getDlqMessagesEndpoint.index(queueName, limit);
 
             //Assert
             assertThat(result).isEqualTo(ImmutableEndpointResponse.builder()

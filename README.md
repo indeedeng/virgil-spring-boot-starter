@@ -40,6 +40,7 @@ gradle buildFrontEndProd
             * readBinderName
             * [Optional] republishName
             * [Optional] republishBinderName
+            * [Optional] republishBindingRoutingKey
     * binders
         * \<binderName\>
             * name
@@ -51,6 +52,57 @@ gradle buildFrontEndProd
                 * username
                 * password
                 * [Optional] virtual-host
+
+Example with Single DLQ:
+```yaml
+virgil:
+  queues:
+    virgilDlq:
+      readName: virgil-dlq
+      readBinderName: virgilExchange
+      republishName: virgil-queue
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: test.#
+  binders:
+    virgilExchange:
+      name: virgil-exchange
+      type: rabbit
+      rabbitProperties:
+        host: virgil-rabbit
+        port: 5672
+        username: guest
+        password: guest
+        virtual-host: /
+```
+
+Example with Many DLQs:
+```yaml
+virgil:
+  queues:
+    virgilDlq:
+      readName: virgil-dlq
+      readBinderName: virgilExchange
+      republishName: virgil-queue
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: test.#
+    virgilDlq2:
+      readName: virgil-queue
+      readBinderName: virgilExchange
+      republishName: virgil-dlq
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: dlq.#
+  binders:
+    virgilExchange:
+      name: virgil-exchange
+      type: rabbit
+      rabbitProperties:
+        host: virgil-rabbit
+        port: 5672
+        username: guest
+        password: guest
+        virtual-host: /
+```
+
 
 #### Configuration Details
 * `binders.<binderName>.rabbitSetings`: if `addresses` is provided it will be used as priority over `host` and `port`.

@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
+import org.springframework.boot.actuate.endpoint.annotation.Selector;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.stereotype.Component;
 
@@ -21,7 +22,6 @@ import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPO
 @Component
 @Endpoint(id = DROP_ALL_MESSAGES_ENDPOINT_ID)
 public class DropAllMessagesEndpoint implements IVirgilEndpoint {
-
     private static final Logger LOG = LoggerFactory.getLogger(DropAllMessagesEndpoint.class);
 
     private final MessageOperator messageOperator;
@@ -32,10 +32,10 @@ public class DropAllMessagesEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index() {
+    public EndpointResponse<Serializable> index(final String queueId) {
 
         return ImmutableEndpointResponse.builder()
-            .setData(messageOperator.dropMessages() ? "Success!" : "Failure")
+            .setData(messageOperator.dropMessages(queueId) ? "Success!" : "Failure")
             .build();
     }
 

@@ -45,6 +45,12 @@ test {
 
 ext['indeed.publish.name'] = 'virgil-spring-boot-starter'
 
+compileJava {
+    // adds metadata at compile to allow for better reflection for spring boot admin
+    // specifically allows actuator @Selector attributes to pick up the name of the parameter
+    options.compilerArgs << '-parameters'
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

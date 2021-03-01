@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
+import org.springframework.boot.actuate.endpoint.annotation.Selector;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.stereotype.Component;
 
@@ -33,12 +34,11 @@ public class DropMessageEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index(final String messageId) {
-
-        final AckCertainMessageResponse response = messageOperator.ackCertainMessage(messageId);
+    public EndpointResponse<Serializable> index(final String queueId, final String messageId) {
+        final AckCertainMessageResponse response = messageOperator.ackCertainMessage(queueId, messageId);
 
         return ImmutableEndpointResponse.builder()
-            .setData(response.isSuccess() ? "Success!" : "Failure")
+            .setData(response.isSuccess() ? "success" : "failure")
             .build();
     }
 

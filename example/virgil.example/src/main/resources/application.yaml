@@ -33,6 +33,12 @@ virgil:
       republishName: virgil-queue
       republishBinderName: virgilExchange
       republishBindingRoutingKey: test.#
+    virgilDlq2:
+      readName: virgil-queue
+      readBinderName: virgilExchange
+      republishName: virgil-dlq
+      republishBinderName: virgilExchange
+      republishBindingRoutingKey: dlq.#
   binders:
     virgilExchange:
       name: virgil-exchange

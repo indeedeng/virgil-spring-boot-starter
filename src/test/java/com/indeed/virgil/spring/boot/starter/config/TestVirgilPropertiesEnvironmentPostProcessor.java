@@ -14,6 +14,10 @@ import org.springframework.core.env.MutablePropertySources;
 import org.springframework.core.env.PropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.Arrays;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -33,7 +37,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final String[][] result = (String[][]) ReflectionTestUtils.getField(instance, "DEFAULT_ENDPOINTS");
 
         //Assert
-        Assertions.assertEquals(5, result.length);
+        assertThat(result).hasSize(6);
     }
 
     @Test
@@ -115,7 +119,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.publish-message");
 
-            Assertions.assertEquals(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.PUBLISH_MESSAGE_ENDPOINT_ID, mappingPropertyValue);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.PUBLISH_MESSAGE_ENDPOINT_ID);
         }
 
         @Test
@@ -125,7 +129,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.drop-message");
 
-            Assertions.assertEquals(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.DROP_MESSAGE_ENDPOINT_ID, mappingPropertyValue);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.DROP_MESSAGE_ENDPOINT_ID);
         }
 
         @Test
@@ -135,7 +139,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.drop-all-messages");
 
-            Assertions.assertEquals(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.DROP_ALL_MESSAGES_ENDPOINT_ID, mappingPropertyValue);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.DROP_ALL_MESSAGES_ENDPOINT_ID);
         }
 
         @Test
@@ -145,7 +149,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-dlq-messages");
 
-            Assertions.assertEquals(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID, mappingPropertyValue);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID);
         }
 
         @Test
@@ -155,7 +159,17 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
             final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
             final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queue-size");
 
-            Assertions.assertEquals(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID, mappingPropertyValue);
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID);
+        }
+
+        @Test
+        void shouldAddPathMappingPropertyForGetQueueEndpoint() {
+
+            //Assert
+            final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
+            final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.path-mapping.get-queues");
+
+            assertThat(mappingPropertyValue).isEqualTo(EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING + EndpointConstants.GET_QUEUES_ENDPOINT_ID);
         }
 
     }
@@ -174,6 +188,14 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
         when(mockConfigurableEnvironment.getPropertySources()).thenReturn(mockPropertySources);
 
+        final List<String> expectedItems = Arrays.asList(
+            "drop-all-messages",
+            "get-dlq-messages",
+            "publish-message",
+            "get-queues",
+            "drop-message",
+            "get-queue-size"
+        );
 
         //Act
         instance.postProcessEnvironment(mockConfigurableEnvironment, mockSpringApplication);
@@ -182,8 +204,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
         final String mappingPropertyValue = (String) result.getProperty("management.endpoints.web.exposure.include");
 
-        Assertions.assertEquals("drop-all-messages,get-dlq-messages,publish-message,drop-message,get-queue-size", mappingPropertyValue);
-
+        assertThat(mappingPropertyValue).isEqualTo(String.join(",", expectedItems));
     }
 
     @Test
@@ -200,6 +221,14 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
 
         when(mockConfigurableEnvironment.getPropertySources()).thenReturn(mockPropertySources);
 
+        final List<String> expectedItems = Arrays.asList(
+            "drop-message:virgil/drop-message",
+            "get-queue-size:virgil/get-queue-size",
+            "publish-message:virgil/publish-message",
+            "drop-all-messages:virgil/drop-all-messages",
+            "get-dlq-messages:virgil/get-dlq-messages",
+            "get-queues:virgil/get-queues"
+        );
 
         //Act
         instance.postProcessEnvironment(mockConfigurableEnvironment, mockSpringApplication);
@@ -208,7 +237,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
         final String mappingPropertyValue = (String) result.getProperty("spring.boot.admin.probed-endpoints");
 
-        Assertions.assertEquals("drop-message:virgil/drop-message,get-queue-size:virgil/get-queue-size,publish-message:virgil/publish-message,drop-all-messages:virgil/drop-all-messages,get-dlq-messages:virgil/get-dlq-messages", mappingPropertyValue);
+        assertThat(mappingPropertyValue).isEqualTo(String.join(",", expectedItems));
     }
 
     @Test
@@ -233,7 +262,7 @@ public class TestVirgilPropertiesEnvironmentPostProcessor {
         final MapPropertySource result = (MapPropertySource) valueCapture.getValue();
         final String mappingPropertyValue = (String) result.getProperty("spring.boot.admin.ui.extension-resource-locations");
 
-        Assertions.assertEquals("classpath:META-INF/extensions/custom/", mappingPropertyValue);
+        assertThat(mappingPropertyValue).isEqualTo("classpath:META-INF/extensions/custom/");
     }
 
     void assertEndpointProperties(final String[][] results, final String expectedId, final String expectedPath) {

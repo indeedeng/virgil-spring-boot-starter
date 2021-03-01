@@ -1,5 +1,7 @@
 package com.indeed.virgil.spring.boot.starter.config;
 
+import com.indeed.virgil.spring.boot.starter.endpoints.GetDlqMessagesEndpoint;
+import com.indeed.virgil.spring.boot.starter.endpoints.GetQueueSizeEndpoint;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
 import org.springframework.core.Ordered;
@@ -12,12 +14,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.DROP_ALL_MESSAGES_ENDPOINT_ID;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.DROP_MESSAGE_ENDPOINT_ID;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.ENDPOINT_DEFAULT_PATH_MAPPING;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_DLQ_MESSAGES_ENDPOINT_ID;
+import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_QUEUES_ENDPOINT_ID;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.GET_QUEUE_SIZE_ENDPOINT_ID;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.PUBLISH_MESSAGE_ENDPOINT_ID;
 import static com.indeed.virgil.spring.boot.starter.util.EndpointConstants.VIRGIL_PATH_PREFIX;
@@ -39,11 +41,12 @@ class VirgilPropertiesEnvironmentPostProcessor implements EnvironmentPostProcess
 
     // Endpoint id, path mapping, cache TTL
     private static final String[][] DEFAULT_ENDPOINTS = {
-        {GET_QUEUE_SIZE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GET_QUEUE_SIZE_ENDPOINT_ID},
-        {GET_DLQ_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GET_DLQ_MESSAGES_ENDPOINT_ID},
+        {GET_QUEUE_SIZE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GetQueueSizeEndpoint.getEndpointId()},
+        {GET_DLQ_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GetDlqMessagesEndpoint.getEndpointId()},
         {PUBLISH_MESSAGE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + PUBLISH_MESSAGE_ENDPOINT_ID},
         {DROP_MESSAGE_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_MESSAGE_ENDPOINT_ID},
-        {DROP_ALL_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_ALL_MESSAGES_ENDPOINT_ID}
+        {DROP_ALL_MESSAGES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + DROP_ALL_MESSAGES_ENDPOINT_ID},
+        {GET_QUEUES_ENDPOINT_ID, ENDPOINT_DEFAULT_PATH_MAPPING + GET_QUEUES_ENDPOINT_ID}
     };
 
     private static final String VIRGIL_EXTENSION_RESOURCE_LOCATION = "classpath:META-INF/extensions/custom/";
@@ -75,13 +78,13 @@ class VirgilPropertiesEnvironmentPostProcessor implements EnvironmentPostProcess
         }
 
         // Get the user-specified endpoints if any configured and add to the list of default endpoint ids
-        final String endpointIds = exposedEndpoints.stream().collect(Collectors.joining(STRING_JOINER))
+        final String endpointIds = String.join(STRING_JOINER, exposedEndpoints)
             + getProperty(ENDPOINTS_INCLUDE_PROPERTY, environment).map(s -> STRING_JOINER + s).orElse("");
 
         properties.put(ENDPOINTS_INCLUDE_PROPERTY, endpointIds);
 
         // Get the user-specified probed endpoints if any configured and add to the list of default endpoint ids
-        final String consolidatedProbedEndpoints = probedEndpoints.stream().collect(Collectors.joining(STRING_JOINER))
+        final String consolidatedProbedEndpoints = String.join(STRING_JOINER, probedEndpoints)
             + getProperty(PROBED_ENDPOINTS_PROPERTY, environment).map(s -> STRING_JOINER + s).orElse("");
 
         properties.put(PROBED_ENDPOINTS_PROPERTY, consolidatedProbedEndpoints);

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
+import org.springframework.boot.actuate.endpoint.annotation.Selector;
 import org.springframework.boot.actuate.endpoint.annotation.WriteOperation;
 import org.springframework.stereotype.Component;
 
@@ -29,12 +30,11 @@ class PublishMessageEndpoint implements IVirgilEndpoint {
     }
 
     @WriteOperation
-    public EndpointResponse<Serializable> index(final String messageId) {
-
-        final RepublishMessageResponse response = messageOperator.republishMessage(messageId);
+    public EndpointResponse<Serializable> index(final String queueId, final String messageId) {
+        final RepublishMessageResponse response = messageOperator.republishMessage(queueId, messageId);
 
         return ImmutableEndpointResponse.builder()
-            .setData(response.isSuccess() ? "Success!" : "Failure")
+            .setData(response.isSuccess() ? "success" : "failure")
             .build();
     }
 

@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Import;
     DropMessageEndpoint.class,
     GetDlqMessagesEndpoint.class,
     GetQueueSizeEndpoint.class,
-    PublishMessageEndpoint.class
+    PublishMessageEndpoint.class,
+    GetQueuesEndpoint.class
 })
 public class VirgilEndpointsConfiguration {
 }

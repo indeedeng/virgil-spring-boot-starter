@@ -2,6 +2,7 @@ package com.indeed.virgil.spring.boot.starter.services;
 
 import com.indeed.virgil.spring.boot.starter.config.VirgilPropertyConfig;
 import com.indeed.virgil.spring.boot.starter.models.AckCertainMessageResponse;
+import com.indeed.virgil.spring.boot.starter.models.ImmutableAckCertainMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.ImmutableVirgilMessage;
 import com.indeed.virgil.spring.boot.starter.models.RepublishMessageResponse;
 import com.indeed.virgil.spring.boot.starter.models.VirgilMessage;
@@ -55,6 +56,7 @@ import static org.mockito.Mockito.when;
 public class TestMessageOperator {
 
     private static final String EXCHANGE_NAME = "exchange";
+    private static final String QUEUE_ID = "primaryQueue";
     private static final String QUEUE_NAME = "default-queue-name";
     private static final String BINDER_NAME = "default-binder-name";
     private static final Integer QUEUE_SIZE_3 = 3;
@@ -79,6 +81,22 @@ public class TestMessageOperator {
 
     private MessageOperator messageOperator;
 
+    final VirgilPropertyConfig.BinderProperties BINDER_PROPERTIES = new VirgilPropertyConfig.BinderProperties(
+        BINDER_NAME,
+        null,
+        null
+    );
+
+    final VirgilPropertyConfig.QueueProperties QUEUE_PROPERTIES = new VirgilPropertyConfig.QueueProperties(
+        QUEUE_NAME,
+        BINDER_NAME,
+        BINDER_PROPERTIES,
+        null,
+        BINDING_KEY,
+        null,
+        null
+    );
+
     @BeforeEach
     public void initializeSetup() {
         MockitoAnnotations.initMocks(this);
@@ -88,22 +106,30 @@ public class TestMessageOperator {
 
     @Nested
     class getQueueSize {
-
         @Test
-        public void shouldReturnQueueSizeWhenQueueExists() {
-
+        void shouldReturnNullWhenNoQueueProperties() {
             initializeQueueProperties(false);
+            when(virgilPropertyConfig.getQueueProperties(QUEUE_ID)).thenReturn(null);
 
-            assertThat(messageOperator.getQueueSize()).isEqualTo(QUEUE_SIZE_3);
+            //Act
+            final Integer result = messageOperator.getQueueSize(QUEUE_ID);
+
+            //Assert
+            assertThat(result).isNull();
         }
 
         @Test
-        public void shouldReturnNullWhenQueueDoesNotExist() {
+        void shouldReturnQueueSizeWhenQueueExists() {
+            initializeQueueProperties(false);
 
+            assertThat(messageOperator.getQueueSize(QUEUE_ID)).isEqualTo(QUEUE_SIZE_3);
+        }
+
+        @Test
+        void shouldReturnNullWhenQueueDoesNotExist() {
             initializeQueueProperties(true);
 
-
-            assertThat(messageOperator.getQueueSize()).isNull();
+            assertThat(messageOperator.getQueueSize(QUEUE_ID)).isNull();
         }
     }
 
@@ -115,11 +141,10 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            final List<VirgilMessage> result = messageOperator.getMessages(null);
+            final List<VirgilMessage> result = messageOperator.getMessages(QUEUE_ID, null);
 
             //Assert
             assertThat(result).isNotNull();
-
             verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
         }
 
@@ -129,7 +154,7 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            final List<VirgilMessage> result = messageOperator.getMessages(1);
+            final List<VirgilMessage> result = messageOperator.getMessages(QUEUE_ID, 1);
 
             //Assert
             assertThat(result).isEmpty();
@@ -143,7 +168,7 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            final List<VirgilMessage> result = messageOperator.getMessages(-1);
+            final List<VirgilMessage> result = messageOperator.getMessages(QUEUE_ID, -1);
 
             //Assert
             assertThat(result).isNotNull();
@@ -157,7 +182,7 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            final List<VirgilMessage> result = messageOperator.getMessages(null);
+            final List<VirgilMessage> result = messageOperator.getMessages(QUEUE_ID, null);
 
             //Assert
             assertThat(result).isEmpty();
@@ -171,10 +196,10 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            messageOperator.getMessages(null);
+            messageOperator.getMessages(QUEUE_ID, null);
 
             //Assert
-            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(1)).destroyReadConnection(QUEUE_ID);
         }
 
         @Test
@@ -182,13 +207,13 @@ public class TestMessageOperator {
             //Arrange
             initializeQueueProperties(false);
 
-            when(rabbitMqConnectionService.getRabbitTemplate(any())).thenThrow(new RuntimeException());
+            when(rabbitMqConnectionService.getReadRabbitTemplate(any())).thenThrow(new RuntimeException());
 
             //Act / Assert
-            assertThatThrownBy(() -> messageOperator.getMessages(null))
+            assertThatThrownBy(() -> messageOperator.getMessages(QUEUE_ID, null))
                 .isInstanceOf(RuntimeException.class);
 
-            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(1)).destroyReadConnection(QUEUE_ID);
         }
 
         @Test
@@ -197,15 +222,15 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            messageOperator.getMessages(null);
+            messageOperator.getMessages(QUEUE_ID, null);
 
             //Assert
-            verify(rabbitMqConnectionService, times(0)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(0)).destroyReadConnection(QUEUE_ID);
         }
     }
 
     @Nested
-    class ackMessages {
+    class dropMessages {
 
         @Test
         void shouldReturnTrueAfterDroppingMessagesSuccessfully() {
@@ -213,7 +238,7 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            final boolean result = messageOperator.dropMessages();
+            final boolean result = messageOperator.dropMessages(QUEUE_ID);
 
             //Assert
             assertThat(result).isTrue();
@@ -227,18 +252,35 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            final boolean result = messageOperator.dropMessages();
+            final boolean result = messageOperator.dropMessages(QUEUE_ID);
 
             //Assert
             assertThat(result).isFalse();
 
             verify(rabbitTemplate, times(QUEUE_SIZE_0)).execute(any());
         }
-
     }
 
     @Nested
     class ackCertainMessage {
+
+        @Test
+        void shouldReturnSuccessIsFalseWhenQueuePropertiesIsMissing() {
+            //Arrange
+            initializeQueueProperties(false);
+
+            when(virgilPropertyConfig.getQueueProperties(any()))
+                .thenReturn(QUEUE_PROPERTIES)
+                .thenReturn(null);
+
+            //Act
+            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID);
+
+            //Assert
+            assertThat(result).isEqualTo(ImmutableAckCertainMessageResponse.builder()
+                .setSuccess(false)
+                .build());
+        }
 
         @Test
         void testAckCertainMessage() {
@@ -246,7 +288,7 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            messageOperator.ackCertainMessage(MESSAGE_ID);
+            messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID);
 
             //Assert
             verify(rabbitTemplate, times(QUEUE_SIZE_3)).execute(any());
@@ -256,7 +298,7 @@ public class TestMessageOperator {
         void shouldReturnSuccessIsFalseWhenMessageIdIsNull() {
 
             //Act
-            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(null);
+            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(QUEUE_ID, null);
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
@@ -266,7 +308,7 @@ public class TestMessageOperator {
         void shouldReturnSuccessIsFalseWhenMessageIdIsEmpty() {
 
             //Act
-            final AckCertainMessageResponse result = messageOperator.ackCertainMessage("");
+            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(QUEUE_ID, "");
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
@@ -278,7 +320,7 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            final AckCertainMessageResponse response = messageOperator.ackCertainMessage(MESSAGE_ID);
+            final AckCertainMessageResponse response = messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID);
 
             //Assert
             assertThat(response.isSuccess()).isFalse();
@@ -292,7 +334,7 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(MESSAGE_ID);
+            final AckCertainMessageResponse result = messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID);
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
@@ -304,10 +346,10 @@ public class TestMessageOperator {
             initializeQueueProperties(false);
 
             //Act
-            messageOperator.ackCertainMessage(MESSAGE_ID);
+            messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID);
 
             //Assert
-            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(1)).destroyReadConnection(QUEUE_ID);
         }
 
         @Test
@@ -315,14 +357,14 @@ public class TestMessageOperator {
             //Arrange
             initializeQueueProperties(false);
 
-            when(rabbitMqConnectionService.getRabbitTemplate(any())).thenThrow(new RuntimeException());
+            when(rabbitMqConnectionService.getReadRabbitTemplate(any())).thenThrow(new RuntimeException());
 
             //Act / Assert
-            assertThatThrownBy(() -> messageOperator.ackCertainMessage(MESSAGE_ID))
+            assertThatThrownBy(() -> messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID))
                 .isInstanceOf(RuntimeException.class);
 
             //Assert
-            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(1)).destroyReadConnection(QUEUE_ID);
         }
 
         @Test
@@ -331,7 +373,7 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            messageOperator.ackCertainMessage(MESSAGE_ID);
+            messageOperator.ackCertainMessage(QUEUE_ID, MESSAGE_ID);
 
             //Assert
             verify(rabbitMqConnectionService, times(0)).destroyConnectionsByName(BINDER_NAME);
@@ -340,6 +382,20 @@ public class TestMessageOperator {
 
     @Nested
     class republishMessage {
+
+        @Test
+        void shouldReturnSuccessIsFalseWhenQueuePropertiesIsNull() {
+            //Arrange
+            when(virgilPropertyConfig.getQueueProperties(any()))
+                .thenReturn(QUEUE_PROPERTIES)
+                .thenReturn(null);
+
+            //Act
+            final RepublishMessageResponse result = messageOperator.republishMessage(QUEUE_ID, null);
+
+            //Assert
+            assertThat(result.isSuccess()).isFalse();
+        }
 
         @Test
         void shouldReturnSuccessIsTrue() throws IOException {
@@ -362,7 +418,7 @@ public class TestMessageOperator {
             when(mockChannel.basicGet(any(), anyBoolean())).thenReturn(response);
 
             //Act
-            final RepublishMessageResponse result = localMessageOperator.republishMessage(messageId);
+            final RepublishMessageResponse result = localMessageOperator.republishMessage(QUEUE_ID, messageId);
 
             //Assert
             assertThat(result.isSuccess()).isTrue();
@@ -373,7 +429,7 @@ public class TestMessageOperator {
             //Arrange
 
             //Act
-            final RepublishMessageResponse result = messageOperator.republishMessage(null);
+            final RepublishMessageResponse result = messageOperator.republishMessage(QUEUE_ID, null);
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
@@ -384,7 +440,7 @@ public class TestMessageOperator {
             //Arrange
 
             //Act
-            final RepublishMessageResponse result = messageOperator.republishMessage("");
+            final RepublishMessageResponse result = messageOperator.republishMessage(QUEUE_ID, "");
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
@@ -396,7 +452,7 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            final RepublishMessageResponse result = messageOperator.republishMessage("123");
+            final RepublishMessageResponse result = messageOperator.republishMessage(QUEUE_ID, "123");
 
             //Assert
             assertThat(result.isSuccess()).isFalse();
@@ -423,10 +479,10 @@ public class TestMessageOperator {
             when(mockChannel.basicGet(any(), anyBoolean())).thenReturn(response);
 
             //Act
-            localMessageOperator.republishMessage(messageId);
+            localMessageOperator.republishMessage(QUEUE_ID, messageId);
 
             //Assert
-            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(1)).destroyReadConnection(QUEUE_ID);
         }
 
         @Test
@@ -437,11 +493,11 @@ public class TestMessageOperator {
             when(rabbitTemplate.execute(any())).thenThrow(new RuntimeException());
 
             //Act / Assert
-            assertThatThrownBy(() -> messageOperator.republishMessage("abc123"))
+            assertThatThrownBy(() -> messageOperator.republishMessage(QUEUE_ID, "abc123"))
                 .isInstanceOf(RuntimeException.class);
 
             //Assert
-            verify(rabbitMqConnectionService, times(1)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(1)).destroyReadConnection(QUEUE_ID);
         }
 
         @Test
@@ -450,32 +506,17 @@ public class TestMessageOperator {
             initializeQueueProperties(true);
 
             //Act
-            messageOperator.republishMessage("123");
+            messageOperator.republishMessage(QUEUE_ID, "123");
 
             //Assert
-            verify(rabbitMqConnectionService, times(0)).destroyConnectionsByName(BINDER_NAME);
+            verify(rabbitMqConnectionService, times(0)).destroyReadConnection(QUEUE_ID);
         }
 
         RepublishMocks initializeMocksAndReturnChannel() {
-            final VirgilPropertyConfig.BinderProperties binderProperties = new VirgilPropertyConfig.BinderProperties(
-                BINDER_NAME,
-                null,
-                null
-            );
+            when(virgilPropertyConfig.getQueueProperties(QUEUE_ID)).thenReturn(QUEUE_PROPERTIES);
 
-            final VirgilPropertyConfig.QueueProperties queueProperties = new VirgilPropertyConfig.QueueProperties(
-                QUEUE_NAME,
-                BINDER_NAME,
-                binderProperties,
-                null,
-                BINDING_KEY,
-                null,
-                null
-            );
-            when(virgilPropertyConfig.getDefaultQueue()).thenReturn(queueProperties);
-
+            when(rabbitMqConnectionService.getReadAmqpAdmin(QUEUE_ID)).thenReturn(amqpAdmin);
             when(rabbitMqConnectionService.getAmqpAdmin(BINDER_NAME)).thenReturn(amqpAdmin);
-
 
             final Properties properties = new Properties();
             properties.put(RabbitAdmin.QUEUE_MESSAGE_COUNT.toString(), Integer.valueOf(1));
@@ -493,6 +534,8 @@ public class TestMessageOperator {
             when(mockConnectionFactory.createConnection()).thenReturn(mockConnection);
 
             localRabbitTemplate.setConnectionFactory(mockConnectionFactory);
+
+            when(rabbitMqConnectionService.getReadRabbitTemplate(QUEUE_ID)).thenReturn(localRabbitTemplate);
             when(rabbitMqConnectionService.getRabbitTemplate(BINDER_NAME)).thenReturn(localRabbitTemplate);
 
             return new RepublishMocks(localRabbitTemplate, mockChannel);
@@ -510,7 +553,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, "");
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, "");
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -533,7 +576,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, "");
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, "");
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -567,7 +610,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -606,7 +649,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -644,7 +687,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleAckCertainMessage handleAckCertainMessage = new HandleAckCertainMessage(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -672,7 +715,7 @@ public class TestMessageOperator {
 
             final Channel mockChannel = mock(Channel.class);
 
-            final HandleDropMessages handleDropMessages = new HandleDropMessages(messageOperator);
+            final HandleDropMessages handleDropMessages = new HandleDropMessages(QUEUE_NAME);
 
             //Act
             handleDropMessages.doInRabbit(mockChannel);
@@ -688,7 +731,7 @@ public class TestMessageOperator {
 
             final Channel mockChannel = mock(Channel.class);
 
-            final HandleDropMessages handleDropMessages = new HandleDropMessages(messageOperator);
+            final HandleDropMessages handleDropMessages = new HandleDropMessages(QUEUE_NAME);
 
             //Act
             final Void result = handleDropMessages.doInRabbit(mockChannel);
@@ -709,7 +752,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, 10);
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -732,7 +775,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, 10);
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -766,7 +809,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, 10);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -817,7 +860,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleGetMessages handleGetMessages = new HandleGetMessages(messageOperator, messagePropertiesConverter, messageConverterService, 10);
+            final HandleGetMessages handleGetMessages = new HandleGetMessages(messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, 10);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getBody()).thenReturn(body.getBytes());
@@ -847,7 +890,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, "");
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, QUEUE_ID, "");
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -870,7 +913,7 @@ public class TestMessageOperator {
             final MessagePropertiesConverter messagePropertiesConverter = new DefaultMessagePropertiesConverter();
             final MessageConverterService messageConverterService = mock(MessageConverterService.class);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, "");
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, QUEUE_ID, "");
 
             final Channel mockChannel = mock(Channel.class);
 
@@ -906,7 +949,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, QUEUE_ID, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -947,7 +990,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, QUEUE_ID, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -988,7 +1031,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId);
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, QUEUE_ID, messageId);
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -1028,7 +1071,7 @@ public class TestMessageOperator {
 
             when(messageConverterService.mapMessage(any())).thenReturn(virgilMessage);
 
-            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(messageOperator, messagePropertiesConverter, messageConverterService, messageId + "2");
+            final HandleRepublishMessage handleRepublishMessage = new HandleRepublishMessage(rabbitMqConnectionService, messagePropertiesConverter, messageConverterService, QUEUE_PROPERTIES, QUEUE_ID, messageId + "2");
 
             final GetResponse mockGetResponse = mock(GetResponse.class);
             when(mockGetResponse.getProps()).thenReturn(new BasicProperties());
@@ -1050,22 +1093,7 @@ public class TestMessageOperator {
 
     private void initializeQueueProperties(final boolean testQueueNotExist) {
 
-        final VirgilPropertyConfig.BinderProperties binderProperties = new VirgilPropertyConfig.BinderProperties(
-            BINDER_NAME,
-            null,
-            null
-        );
-
-        final VirgilPropertyConfig.QueueProperties queueProperties = new VirgilPropertyConfig.QueueProperties(
-            QUEUE_NAME,
-            BINDER_NAME,
-            binderProperties,
-            null,
-            BINDING_KEY,
-            null,
-            null
-        );
-        when(virgilPropertyConfig.getDefaultQueue()).thenReturn(queueProperties);
+        when(virgilPropertyConfig.getQueueProperties(QUEUE_ID)).thenReturn(QUEUE_PROPERTIES);
 
         when(rabbitMqConnectionService.getAmqpAdmin(BINDER_NAME)).thenReturn(amqpAdmin);
 
@@ -1078,6 +1106,8 @@ public class TestMessageOperator {
             when(amqpAdmin.getQueueProperties(QUEUE_NAME)).thenReturn(properties);
         }
 
+        when(rabbitMqConnectionService.getReadAmqpAdmin(QUEUE_ID)).thenReturn(amqpAdmin);
+        when(rabbitMqConnectionService.getReadRabbitTemplate(QUEUE_ID)).thenReturn(rabbitTemplate);
         when(rabbitMqConnectionService.getRabbitTemplate(BINDER_NAME)).thenReturn(rabbitTemplate);
         when(rabbitTemplate.getConnectionFactory()).thenReturn(new CachingConnectionFactory());
     }
