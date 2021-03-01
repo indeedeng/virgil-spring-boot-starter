@@ -9,9 +9,9 @@
           <div class="control">
             <div class="select">
               <select v-model="currentQueueId">
-                <option 
-                  v-for="queueId in availableQueues" 
-                  v-text="queueId" 
+                <option
+                  v-for="queueId in availableQueues"
+                  v-text="queueId"
                   :key="queueId" />
               </select>
             </div>
@@ -139,11 +139,6 @@
 
                 if(response.data === "success") {
                     await this.getQueueSize();
-
-                    //remove item from dlqMessages since it has been dropped successfully
-                    if(index >= 0 && index < this.dlqMessages.length) {
-                        delete this.dlqMessages[index];
-                    }
                 }
 
                 // eslint-disable-next-line
@@ -160,13 +155,6 @@
 
                 if(response.data === "success") {
                     await this.getQueueSize();
-
-                    //remove item from dlqMessages since it has been dropped successfully
-                    // this code assume that republish is not putting this message back into the same
-                    // queue that is being displayed
-                    if(index >= 0 && index < this.dlqMessages.length) {
-                        delete this.dlqMessages[index];
-                    }
                 }
 
                 // eslint-disable-next-line
