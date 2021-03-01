@@ -52,7 +52,7 @@ public class MessageOperator {
 
     /**
      * @param queueId Queue Property Key, this is not the actual name of the queue
-     * @return
+     * @return queueSize
      */
     @Nullable
     public Integer getQueueSize(final String queueId) {
@@ -87,8 +87,8 @@ public class MessageOperator {
      * Retrieves messages from the DLQ up to the limit passed in
      *
      * @param queueId Queue Property Key, this is not the actual name of the queue
-     * @param limit
-     * @return
+     * @param limit Limits the number of messages returned from DLQ
+     * @return List of messages
      */
     public List<VirgilMessage> getMessages(final String queueId, @Nullable final Integer limit) {
         final Integer queueSize = getQueueSize(queueId);
@@ -318,7 +318,7 @@ public class MessageOperator {
         /**
          * Returns true if the message was found and ack'd, otherwise returns false
          *
-         * @return
+         * @return boolean
          */
         public boolean isRepublishSuccessful() {
             return this.messageRepublished;

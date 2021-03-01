@@ -28,14 +28,20 @@ public class RabbitMqConnectionService {
     private final ThreadLocal<Map<String, AmqpAdmin>> amqpAdminLookup = new ThreadLocal<>();
     private final ThreadLocal<Map<String, RabbitTemplate>> rabbitTemplateLookup = new ThreadLocal<>();
 
-    public RabbitMqConnectionService(final VirgilPropertyConfig virgilPropertyConfig) {
+    /**
+     *
+     * @param virgilPropertyConfig Virgil Properties
+     */
+    public RabbitMqConnectionService(
+        final VirgilPropertyConfig virgilPropertyConfig
+    ) {
         this.virgilPropertyConfig = virgilPropertyConfig;
     }
 
     /**
      *
      * @param queueName Queue Property Key, this is not the actual name of the queue
-     * @return
+     * @return BindingKey
      */
     public String getReadBindingKey(final String queueName) {
         final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
@@ -45,7 +51,7 @@ public class RabbitMqConnectionService {
     /**
      *
      * @param queueName Queue Property Key, this is not the actual name of the queue
-     * @return
+     * @return RabbitTemplate
      */
     public RabbitTemplate getReadRabbitTemplate(final String queueName) {
         final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
@@ -65,7 +71,6 @@ public class RabbitMqConnectionService {
     /**
      *
      * @param queueName Queue Property Key, this is not the actual name of the queue
-     * @return
      */
     public void destroyReadConnection(final String queueName) {
         final QueueProperties queueProperties = virgilPropertyConfig.getQueueProperties(queueName);
@@ -75,7 +80,7 @@ public class RabbitMqConnectionService {
 
     /**
      *
-     * @param binderName
+     * @param binderName Name of the RabbitMq Exchange
      * @return
      */
     public AmqpAdmin getAmqpAdmin(final String binderName) {
@@ -132,7 +137,7 @@ public class RabbitMqConnectionService {
     /**
      * Destroys the ConnectionFactory associated with the BinderName along with removing the cached AmqpAdmin and RabbitTemplate from cache
      *
-     * @param binderName
+     * @param binderName Name of the RabbitMq Exchange
      */
     public void destroyConnectionsByName(final String binderName) {
         //flush cached amqpAdmin and rabbitTemplate instances

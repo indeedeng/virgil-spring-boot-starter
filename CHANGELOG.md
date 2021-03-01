@@ -1,6 +1,6 @@
-1.3.0
+1.3.1
 * (feature) Added support for multiple DLQs to be displayed ([#27](https://github.com/indeedeng/virgil-spring-boot-starter/issues/27))
-
+* (bug) Updated documentation to pass javadoc build step (NOBUG)
 
 1.2.1
 (Not Released)
